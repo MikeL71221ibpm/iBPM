@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ibpmuser
+      POSTGRES_PASSWORD: ibpmpassword
+      POSTGRES_DB: ibpm_local
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      DATABASE_URL: postgresql://ibpmuser:ibpmpassword@db:5432/ibpm_local
+      SESSION_SECRET: your-secure-session-secret-here
+      NODE_ENV: production
+      PORT: 4000
+      STRIPE_SECRET_KEY: your-stripe-secret-key
+      STRIPE_PUBLISHABLE_KEY: your-stripe-publishable-key
+    depends_on:
+      - db
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./uploads:/app/uploads  # Optional: persist uploads
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

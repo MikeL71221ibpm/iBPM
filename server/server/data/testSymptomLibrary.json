@@ -1,0 +1,746 @@
+[
+  {
+    "symptomId": "SYM_Depression_1",
+    "symptomSegment": "Depression symptom 1",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_2",
+    "symptomSegment": "Depression symptom 2",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_3",
+    "symptomSegment": "Depression symptom 3",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_4",
+    "symptomSegment": "Depression symptom 4",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_5",
+    "symptomSegment": "Depression symptom 5",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_6",
+    "symptomSegment": "Depression symptom 6",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_7",
+    "symptomSegment": "Depression symptom 7",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_8",
+    "symptomSegment": "Depression symptom 8",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_9",
+    "symptomSegment": "Depression symptom 9",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Depression_10",
+    "symptomSegment": "Depression symptom 10",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_1",
+    "symptomSegment": "Anxiety symptom 1",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_2",
+    "symptomSegment": "Anxiety symptom 2",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_3",
+    "symptomSegment": "Anxiety symptom 3",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_4",
+    "symptomSegment": "Anxiety symptom 4",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_5",
+    "symptomSegment": "Anxiety symptom 5",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_6",
+    "symptomSegment": "Anxiety symptom 6",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_7",
+    "symptomSegment": "Anxiety symptom 7",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_8",
+    "symptomSegment": "Anxiety symptom 8",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_9",
+    "symptomSegment": "Anxiety symptom 9",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Anxiety_10",
+    "symptomSegment": "Anxiety symptom 10",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_1",
+    "symptomSegment": "Bipolar Disorder symptom 1",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_2",
+    "symptomSegment": "Bipolar Disorder symptom 2",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_3",
+    "symptomSegment": "Bipolar Disorder symptom 3",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_4",
+    "symptomSegment": "Bipolar Disorder symptom 4",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_5",
+    "symptomSegment": "Bipolar Disorder symptom 5",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_6",
+    "symptomSegment": "Bipolar Disorder symptom 6",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_7",
+    "symptomSegment": "Bipolar Disorder symptom 7",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_8",
+    "symptomSegment": "Bipolar Disorder symptom 8",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_9",
+    "symptomSegment": "Bipolar Disorder symptom 9",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_BipolarDisorder_10",
+    "symptomSegment": "Bipolar Disorder symptom 10",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_1",
+    "symptomSegment": "PTSD symptom 1",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_2",
+    "symptomSegment": "PTSD symptom 2",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_3",
+    "symptomSegment": "PTSD symptom 3",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_4",
+    "symptomSegment": "PTSD symptom 4",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_5",
+    "symptomSegment": "PTSD symptom 5",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_6",
+    "symptomSegment": "PTSD symptom 6",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_7",
+    "symptomSegment": "PTSD symptom 7",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_8",
+    "symptomSegment": "PTSD symptom 8",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_9",
+    "symptomSegment": "PTSD symptom 9",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_PTSD_10",
+    "symptomSegment": "PTSD symptom 10",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_1",
+    "symptomSegment": "OCD symptom 1",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_2",
+    "symptomSegment": "OCD symptom 2",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_3",
+    "symptomSegment": "OCD symptom 3",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_4",
+    "symptomSegment": "OCD symptom 4",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_5",
+    "symptomSegment": "OCD symptom 5",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_6",
+    "symptomSegment": "OCD symptom 6",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_7",
+    "symptomSegment": "OCD symptom 7",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_8",
+    "symptomSegment": "OCD symptom 8",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_9",
+    "symptomSegment": "OCD symptom 9",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_OCD_10",
+    "symptomSegment": "OCD symptom 10",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_1",
+    "symptomSegment": "Substance Abuse symptom 1",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_2",
+    "symptomSegment": "Substance Abuse symptom 2",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_3",
+    "symptomSegment": "Substance Abuse symptom 3",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_4",
+    "symptomSegment": "Substance Abuse symptom 4",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_5",
+    "symptomSegment": "Substance Abuse symptom 5",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_6",
+    "symptomSegment": "Substance Abuse symptom 6",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_7",
+    "symptomSegment": "Substance Abuse symptom 7",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_8",
+    "symptomSegment": "Substance Abuse symptom 8",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_9",
+    "symptomSegment": "Substance Abuse symptom 9",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_SubstanceAbuse_10",
+    "symptomSegment": "Substance Abuse symptom 10",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_1",
+    "symptomSegment": "Schizophrenia symptom 1",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_2",
+    "symptomSegment": "Schizophrenia symptom 2",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_3",
+    "symptomSegment": "Schizophrenia symptom 3",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_4",
+    "symptomSegment": "Schizophrenia symptom 4",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_5",
+    "symptomSegment": "Schizophrenia symptom 5",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_6",
+    "symptomSegment": "Schizophrenia symptom 6",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_7",
+    "symptomSegment": "Schizophrenia symptom 7",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_8",
+    "symptomSegment": "Schizophrenia symptom 8",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_9",
+    "symptomSegment": "Schizophrenia symptom 9",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_Schizophrenia_10",
+    "symptomSegment": "Schizophrenia symptom 10",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_1",
+    "symptomSegment": "depressed mood",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_2",
+    "symptomSegment": "loss of interest",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_3",
+    "symptomSegment": "fatigue",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_4",
+    "symptomSegment": "insomnia",
+    "diagnosis": "Depression Diagnosis",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_5",
+    "symptomSegment": "excessive worry",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_6",
+    "symptomSegment": "restlessness",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_7",
+    "symptomSegment": "irritability",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_8",
+    "symptomSegment": "difficulty concentrating",
+    "diagnosis": "Anxiety Diagnosis",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_9",
+    "symptomSegment": "elevated mood",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_10",
+    "symptomSegment": "racing thoughts",
+    "diagnosis": "Bipolar Disorder Diagnosis",
+    "diagnosticCategory": "Bipolar Disorder",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_11",
+    "symptomSegment": "flashbacks",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_12",
+    "symptomSegment": "nightmares",
+    "diagnosis": "PTSD Diagnosis",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_13",
+    "symptomSegment": "intrusive thoughts",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_14",
+    "symptomSegment": "compulsive behaviors",
+    "diagnosis": "OCD Diagnosis",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_15",
+    "symptomSegment": "alcohol cravings",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_16",
+    "symptomSegment": "withdrawal symptoms",
+    "diagnosis": "Substance Abuse Diagnosis",
+    "diagnosticCategory": "Substance Abuse",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_17",
+    "symptomSegment": "hallucinations",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_18",
+    "symptomSegment": "delusions",
+    "diagnosis": "Schizophrenia Diagnosis",
+    "diagnosticCategory": "Schizophrenia",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_19",
+    "symptomSegment": "homeless",
+    "diagnosis": "HRSN Diagnosis",
+    "diagnosticCategory": "HRSN",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_20",
+    "symptomSegment": "food insecurity",
+    "diagnosis": "HRSN Diagnosis",
+    "diagnosticCategory": "HRSN",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_21",
+    "symptomSegment": "financial problems",
+    "diagnosis": "HRSN Diagnosis",
+    "diagnosticCategory": "HRSN",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_22",
+    "symptomSegment": "lacks transportation",
+    "diagnosis": "HRSN Diagnosis",
+    "diagnosticCategory": "HRSN",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_REAL_23",
+    "symptomSegment": "healthcare access problems",
+    "diagnosis": "HRSN Diagnosis",
+    "diagnosticCategory": "HRSN",
+    "symptomProblem": null,
+    "sympProb": null
+  }
+]

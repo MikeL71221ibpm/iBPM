@@ -1,0 +1,87 @@
+/* Standardized date label styles for both pivot tables and visualizations */
+
+.date-label-container {
+  position: relative;
+  height: 40px;
+}
+
+.date-label {
+  position: absolute;
+  transform: rotate(45deg);
+  transform-origin: bottom left;
+  left: 8px;
+  bottom: 5px;
+  font-size: 10px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.date-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background-color: white;
+  box-shadow: 0 -2px 3px rgba(0, 0, 0, 0.05);
+}
+
+.cell-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background-color: white;
+}
+
+/* Viridis-inspired color palette for heatmaps */
+.color-scale-0 {
+  background-color: rgb(250, 250, 250);
+}
+
+.color-scale-1 {
+  background-color: rgb(240, 249, 255);
+  color: rgb(0, 60, 115);
+}
+
+.color-scale-2 {
+  background-color: rgb(224, 242, 255);
+  color: rgb(0, 60, 115);
+}
+
+.color-scale-3 {
+  background-color: rgb(186, 228, 245);
+  color: rgb(0, 58, 110);
+}
+
+.color-scale-4 {
+  background-color: rgb(147, 201, 222);
+  color: rgb(0, 52, 102);
+}
+
+.color-scale-5 {
+  background-color: rgb(103, 171, 191);
+  color: rgb(0, 45, 89);
+}
+
+.color-scale-6 {
+  background-color: rgb(73, 154, 167);
+  color: white;
+}
+
+.color-scale-7 {
+  background-color: rgb(50, 136, 138);
+  color: white;
+}
+
+.color-scale-8 {
+  background-color: rgb(40, 116, 94);
+  color: white;
+}
+
+.color-scale-9 {
+  background-color: rgb(50, 94, 50);
+  color: white;
+}
+
+.color-scale-10 {
+  background-color: rgb(73, 73, 11);
+  color: white;
+}

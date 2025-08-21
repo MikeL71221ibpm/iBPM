@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Processing Recovery Tools</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            color: #e11d48;
+            margin-top: 0;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 10px;
+        }
+        .status-container {
+            background-color: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .status-line {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .progress-container {
+            margin: 15px 0;
+            background-color: #eee;
+            border-radius: 8px;
+            height: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #4ade80;
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            color: #333;
+            font-weight: bold;
+            mix-blend-mode: difference;
+        }
+        button {
+            background-color: #4b5563;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #374151;
+        }
+        .emergency-button {
+            background-color: #e11d48;
+        }
+        .emergency-button:hover {
+            background-color: #be123c;
+        }
+        .success-button {
+            background-color: #10b981;
+        }
+        .success-button:hover {
+            background-color: #059669;
+        }
+        .warning-button {
+            background-color: #f59e0b;
+        }
+        .warning-button:hover {
+            background-color: #d97706;
+        }
+        .button-container {
+            margin-top: 25px;
+            border-top: 1px solid #f3f4f6;
+            padding-top: 15px;
+        }
+        .section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        pre {
+            background-color: #f1f5f9;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .stalled-warning {
+            color: #e11d48;
+            font-weight: bold;
+            margin-top: 10px;
+            animation: flash 1s infinite;
+        }
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .timestamp {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-in-progress {
+            background-color: #93c5fd;
+            color: #1e3a8a;
+        }
+        .status-completed {
+            background-color: #86efac;
+            color: #14532d;
+        }
+        .status-error {
+            background-color: #fca5a5;
+            color: #7f1d1d;
+        }
+        .status-idle {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Emergency Processing Recovery Tools</h1>
+        
+        <div class="section">
+            <h3>Current Status</h3>
+            <div class="status-container" id="statusContainer">
+                <div class="status-line">
+                    Process: <strong id="processType">Loading...</strong> 
+                    <span class="status-badge status-idle" id="statusBadge">IDLE</span>
+                </div>
+                <div class="status-line">Status Message: <span id="statusMessage">Checking status...</span></div>
+                <div class="status-line">Current Stage: <span id="currentStage">Unknown</span></div>
+                <div class="status-line">
+                    <div>Progress:</div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar">
+                            <div class="progress-text" id="progressText">0%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-line">Last Update: <span class="timestamp" id="lastUpdate">Never</span></div>
+                <div class="status-line" id="stalledContainer" style="display: none;">
+                    <div class="stalled-warning" id="stalledWarning"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>Emergency Controls</h3>
+            <p>These controls allow you to manage stalled or problematic processes.</p>
+            
+            <div class="button-container">
+                <button class="emergency-button" id="forceStopBtn" title="Immediately terminates the running process but preserves progress data and partial results. The process remains in the database in a 'stopped' state.">Force Stop Process</button>
+                <button class="warning-button" id="boostBtn" title="Attempts to accelerate a slow or stalled process by allocating additional resources and optimizing the processing queue.">Boost Process</button>
+                <button id="resetBtn" title="Completely clears the process record, removes all progress data, and resets the system to a state as if the process had never started. You'll need to start from the beginning.">Reset Process</button>
+                <button class="success-button" id="forceCompleteBtn" title="Marks the process as successfully completed even if it's not fully done. Use this only when partial results are acceptable or when there's a known issue preventing normal completion.">Force Complete</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>Database Status</h3>
+            <div id="dbStatusContainer">
+                <p>Loading database status...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>Process Log</h3>
+            <pre id="processLog">Loading logs...</pre>
+        </div>
+    </div>
+
+    <script>
+        // Elements
+        const processTypeEl = document.getElementById('processType');
+        const statusBadgeEl = document.getElementById('statusBadge');
+        const statusMessageEl = document.getElementById('statusMessage');
+        const currentStageEl = document.getElementById('currentStage');
+        const progressBarEl = document.getElementById('progressBar');
+        const progressTextEl = document.getElementById('progressText');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+        const stalledContainerEl = document.getElementById('stalledContainer');
+        const stalledWarningEl = document.getElementById('stalledWarning');
+        const dbStatusContainerEl = document.getElementById('dbStatusContainer');
+        const processLogEl = document.getElementById('processLog');
+        
+        // Buttons
+        const forceStopBtn = document.getElementById('forceStopBtn');
+        const boostBtn = document.getElementById('boostBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const forceCompleteBtn = document.getElementById('forceCompleteBtn');
+        
+        // Constants
+        const PROCESS_TYPE = 'extract_symptoms';
+        const STALLED_THRESHOLD_SECONDS = 60;
+        
+        // State
+        let statusPollingInterval;
+        let lastProgressTime = 0;
+        let currentProgress = 0;
+        
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+        
+        // Calculate time difference in seconds
+        function getSecondsSince(timestamp) {
+            return Math.floor((Date.now() - timestamp) / 1000);
+        }
+        
+        // Check if process is stalled
+        function checkIfStalled(progress, timestamp) {
+            if (progress < 100 && progress > 0) {
+                const secondsSinceUpdate = getSecondsSince(timestamp);
+                if (secondsSinceUpdate > STALLED_THRESHOLD_SECONDS) {
+                    stalledContainerEl.style.display = 'block';
+                    stalledWarningEl.textContent = `⚠️ Process appears to be stalled at ${progress}% for ${secondsSinceUpdate} seconds!`;
+                    return true;
+                }
+            }
+            stalledContainerEl.style.display = 'none';
+            return false;
+        }
+        
+        // Update status badge
+        function updateStatusBadge(status) {
+            statusBadgeEl.className = 'status-badge';
+            switch(status) {
+                case 'in_progress':
+                    statusBadgeEl.classList.add('status-in-progress');
+                    statusBadgeEl.textContent = 'IN PROGRESS';
+                    break;
+                case 'completed':
+                    statusBadgeEl.classList.add('status-completed');
+                    statusBadgeEl.textContent = 'COMPLETED';
+                    break;
+                case 'error':
+                    statusBadgeEl.classList.add('status-error');
+                    statusBadgeEl.textContent = 'ERROR';
+                    break;
+                default:
+                    statusBadgeEl.classList.add('status-idle');
+                    statusBadgeEl.textContent = 'IDLE';
+            }
+        }
+        
+        // Fetch and update process status
+        async function updateProcessStatus() {
+            try {
+                const response = await fetch(`/api/processing-status/${PROCESS_TYPE}`);
+                const data = await response.json();
+                
+                // Update UI
+                processTypeEl.textContent = PROCESS_TYPE;
+                statusMessageEl.textContent = data.message || 'No message';
+                currentStageEl.textContent = data.stage || 'Not specified';
+                currentProgress = data.progress || 0;
+                progressBarEl.style.width = `${currentProgress}%`;
+                progressTextEl.textContent = `${currentProgress}%`;
+                lastUpdateEl.textContent = formatTimestamp(data.timestamp);
+                updateStatusBadge(data.status);
+                
+                // Check if stalled
+                if (data.status === 'in_progress') {
+                    checkIfStalled(data.progress, data.timestamp);
+                } else {
+                    stalledContainerEl.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Error fetching process status:', error);
+                statusMessageEl.textContent = 'Error fetching status';
+            }
+        }
+        
+        // Fetch database status
+        async function fetchDatabaseStatus() {
+            try {
+                const response = await fetch('/api/emergency/db-status');
+                const data = await response.json();
+                
+                const statusHtml = `
+                    <div>
+                        <p><strong>Process Records:</strong> ${data.processCount}</p>
+                        <p><strong>Recent Status Updates:</strong> ${data.recentUpdatesCount}</p>
+                        <p><strong>Database Connection:</strong> ${data.dbConnection ? '✅ Connected' : '❌ Disconnected'}</p>
+                    </div>
+                `;
+                dbStatusContainerEl.innerHTML = statusHtml;
+                
+            } catch (error) {
+                console.error('Error fetching database status:', error);
+                dbStatusContainerEl.innerHTML = '<p>Error loading database status</p>';
+            }
+        }
+        
+        // Fetch process logs
+        async function fetchProcessLogs() {
+            try {
+                const response = await fetch(`/api/emergency/logs/${PROCESS_TYPE}?limit=10`);
+                const data = await response.json();
+                
+                if (data.logs && data.logs.length > 0) {
+                    const logText = data.logs.map(log => {
+                        return `[${formatTimestamp(log.timestamp)}] ${log.message} (${log.progress}%)`;
+                    }).join('\n');
+                    processLogEl.textContent = logText;
+                } else {
+                    processLogEl.textContent = 'No logs available';
+                }
+                
+            } catch (error) {
+                console.error('Error fetching process logs:', error);
+                processLogEl.textContent = 'Error loading logs';
+            }
+        }
+        
+        // Force stop the process
+        async function forceStopProcess() {
+            try {
+                if (!confirm('Are you sure you want to force stop the current process?')) {
+                    return;
+                }
+                
+                // First try auto-restart force restart
+                try {
+                    const autoRestartResponse = await fetch('/api/auto-restart/force-restart', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ processType: PROCESS_TYPE }),
+                    });
+                    
+                    if (autoRestartResponse.ok) {
+                        console.log('Auto-restart force restart initiated');
+                    }
+                } catch (autoRestartError) {
+                    console.warn('Auto-restart not available, proceeding with emergency stop:', autoRestartError);
+                }
+                
+                const response = await fetch('/api/emergency/force-stop-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ taskType: PROCESS_TYPE }),
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Process has been stopped');
+                    updateProcessStatus();
+                } else {
+                    alert(`Failed to stop process: ${data.message}`);
+                }
+                
+            } catch (error) {
+                console.error('Error stopping process:', error);
+                alert('Error stopping process. See console for details.');
+            }
+        }
+        
+        // Boost the process
+        async function boostProcess() {
+            try {
+                if (!confirm('Are you sure you want to boost the process?')) {
+                    return;
+                }
+                
+                // First try auto-restart force restart for boost
+                try {
+                    const autoRestartResponse = await fetch('/api/auto-restart/force-restart', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ processType: PROCESS_TYPE }),
+                    });
+                    
+                    if (autoRestartResponse.ok) {
+                        console.log('Auto-restart boost initiated');
+                    }
+                } catch (autoRestartError) {
+                    console.warn('Auto-restart not available, proceeding with emergency boost:', autoRestartError);
+                }
+                
+                const response = await fetch('/api/emergency/boost-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ taskType: PROCESS_TYPE }),
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Process has been boosted');
+                    updateProcessStatus();
+                } else {
+                    alert(`Failed to boost process: ${data.message}`);
+                }
+                
+            } catch (error) {
+                console.error('Error boosting process:', error);
+                alert('Error boosting process. See console for details.');
+            }
+        }
+        
+        // Reset the process
+        async function resetProcess() {
+            try {
+                if (!confirm('Are you sure you want to reset the process? This will clear all current progress.')) {
+                    return;
+                }
+                
+                // First try auto-restart force restart for reset
+                try {
+                    const autoRestartResponse = await fetch('/api/auto-restart/force-restart', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ processType: PROCESS_TYPE }),
+                    });
+                    
+                    if (autoRestartResponse.ok) {
+                        console.log('Auto-restart reset initiated');
+                    }
+                } catch (autoRestartError) {
+                    console.warn('Auto-restart not available, proceeding with emergency reset:', autoRestartError);
+                }
+                
+                const response = await fetch('/api/emergency/reset-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ taskType: PROCESS_TYPE }),
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Process has been reset');
+                    updateProcessStatus();
+                } else {
+                    alert(`Failed to reset process: ${data.message}`);
+                }
+                
+            } catch (error) {
+                console.error('Error resetting process:', error);
+                alert('Error resetting process. See console for details.');
+            }
+        }
+        
+        // Force complete the process
+        async function forceCompleteProcess() {
+            try {
+                if (!confirm('Are you sure you want to force complete the process? This might lead to incomplete data.')) {
+                    return;
+                }
+                
+                // First try auto-restart force restart for completion
+                try {
+                    const autoRestartResponse = await fetch('/api/auto-restart/force-restart', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ processType: PROCESS_TYPE }),
+                    });
+                    
+                    if (autoRestartResponse.ok) {
+                        console.log('Auto-restart force complete initiated');
+                    }
+                } catch (autoRestartError) {
+                    console.warn('Auto-restart not available, proceeding with emergency complete:', autoRestartError);
+                }
+                
+                const response = await fetch('/api/emergency/force-complete-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ taskType: PROCESS_TYPE }),
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Process has been marked as complete');
+                    updateProcessStatus();
+                } else {
+                    alert(`Failed to complete process: ${data.message}`);
+                }
+                
+            } catch (error) {
+                console.error('Error completing process:', error);
+                alert('Error completing process. See console for details.');
+            }
+        }
+        
+        // Initialize
+        function init() {
+            // Set process type
+            processTypeEl.textContent = PROCESS_TYPE;
+            
+            // Initial data fetch
+            updateProcessStatus();
+            fetchDatabaseStatus();
+            fetchProcessLogs();
+            
+            // Setup polling
+            statusPollingInterval = setInterval(() => {
+                updateProcessStatus();
+                fetchProcessLogs();
+            }, 3000);
+            
+            // Setup button handlers
+            forceStopBtn.addEventListener('click', forceStopProcess);
+            boostBtn.addEventListener('click', boostProcess);
+            resetBtn.addEventListener('click', resetProcess);
+            forceCompleteBtn.addEventListener('click', forceCompleteProcess);
+        }
+        
+        // Start everything
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Use official Node.js image for frontend build
+
+FROM node:20-alpine as build
+WORKDIR /app
+# Copy the entire project so Vite config and all dependencies are present
+COPY . .
+# Install Python and build dependencies for native modules (e.g., canvas)
+RUN apk add --no-cache python3 make g++ pkgconfig pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
+RUN npm install
+RUN npm run build
+# Copy frontend build to backend public directory for static serving
+# RUN mkdir -p /app/server/public && cp -r /app/dist/public/* /app/server/public/
+
+FROM nginx:alpine
+COPY --from=build /app/dist/public /usr/share/nginx/html
+EXPOSE 80

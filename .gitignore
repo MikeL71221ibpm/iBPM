@@ -1,0 +1,51 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+# Backup folders - exclude from deployment
+v3.*
+backups*
+chart_backups*
+pre-testing-backup
+project_snapshot*
+github-releases
+multi-user-demo
+test-dist
+testing
+code_export
+replit_agent
+reports
+logs
+uploads
+
+# Large data files - exclude from Git (PERMANENT DEPLOYMENT FIX)
+*.geojson
+public/us-*.geojson
+client/public/*.geojson
+attached_assets/*.xlsx
+attached_assets/*.csv
+attached_assets/*.docx
+attached_assets/*.pdf
+complete_*.csv
+test_exports/
+*.zip
+*.tar.gz
+uploads/
+logs/
+dist/
+
+# Database exports and backups
+complete_database_export_*.csv
+complete_unified_export_*.csv
+Validated_generated_notes_*.xlsx
+
+# Version control bloat prevention
+v3.*/
+*backup*/
+*_backup*
+chart_backup*/
+pre-testing-backup/
+project_snapshot*/
+github-releases/

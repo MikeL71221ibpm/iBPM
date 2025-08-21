@@ -1,0 +1,423 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Maximize2 } from 'lucide-react';
+import { 
+  Dialog, DialogContent, DialogDescription, 
+  DialogHeader, DialogTitle, DialogTrigger 
+} from "@/components/ui/dialog";
+import { ResponsiveHeatMap } from '@nivo/heatmap';
+
+// Props definition with optional filters
+interface AgeRangeHrsnHeatmapProps {
+  patientData?: any[];
+  extractedSymptoms?: any[];
+  colorScheme?: string;
+  isLoading?: boolean;
+  filterBy?: {
+    diagnosis?: string;
+    diagnosticCategory?: string;
+    symptom?: string;
+    icd10Code?: string;
+  };
+}
+
+// Data structure for heatmap
+interface HeatmapDataPoint {
+  id: string;
+  data: Array<{
+    x: string;
+    y: number;
+  }>;
+}
+
+export default function AgeRangeHrsnHeatmap({ 
+  patientData = [], 
+  extractedSymptoms = [], 
+  colorScheme = "blues", 
+  isLoading = false,
+  filterBy = {}
+}: AgeRangeHrsnHeatmapProps): JSX.Element {
+  
+  const [heatmapData, setHeatmapData] = useState<HeatmapDataPoint[]>([]);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hasData, setHasData] = useState(false);
+  
+  // Log component load with parameters
+  useEffect(() => {
+    console.log("AgeRangeHrsnHeatmap COMPONENT LOADED");
+    console.log("AgeRangeHrsnHeatmap data received:", {
+      patientDataLength: patientData?.length,
+      extractedSymptomsLength: extractedSymptoms?.length,
+      colorScheme,
+      filterBy
+    });
+  }, []);
+
+  // Enhanced age range calculation that prioritizes existing age_range field
+  const calculateAgeRange = (item: any): string => {
+    // Four-tier data processing for age ranges (matching standardized approach)
+    // First priority: Handle pre-aggregated ageRange field from backend data
+    if (item.ageRange) {
+      const backendRange = item.ageRange.toString();
+      if (backendRange === "18-29") return "18-25";
+      else if (backendRange === "30-39") return "26-35"; 
+      else if (backendRange === "40-49") return "36-50";
+      else if (backendRange === "50-59") return "51-65";
+      else if (backendRange === "60-69" || backendRange === "70+") return "65+";
+      else return backendRange; // Already in standard format
+    }
+    
+    // Second priority: Use existing age_range field if available and valid
+    if (item.age_range && item.age_range !== 'Unknown' && item.age_range !== 'All Ages') {
+      return item.age_range;
+    }
+    
+    // Third priority: Calculate from age field using standard ranges
+    if (item.age && item.age > 0) {
+      const age = item.age;
+      if (age < 18) return "Under 18";
+      if (age >= 18 && age <= 25) return "18-25";
+      if (age >= 26 && age <= 35) return "26-35";
+      if (age >= 36 && age <= 50) return "36-50";
+      if (age >= 51 && age <= 65) return "51-65";
+      if (age >= 65) return "65+";
+    }
+    
+    // Fourth priority: Calculate from date_of_birth (DOB) with precise birthday adjustment
+    if (item.date_of_birth) {
+      const today = new Date();
+      const birthDate = new Date(item.date_of_birth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      // Adjust if birthday hasn't occurred this year
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 18) return "Under 18";
+      if (age >= 18 && age <= 25) return "18-25";
+      if (age >= 26 && age <= 35) return "26-35";
+      if (age >= 36 && age <= 50) return "36-50";
+      if (age >= 51 && age <= 65) return "51-65";
+      if (age >= 65) return "65+";
+    }
+    
+    return "Unknown";
+  };
+
+  // Apply filters to patient data if any
+  const getFilteredData = () => {
+    console.log("Filtering data with criteria:", filterBy);
+    
+    if (!patientData || patientData.length === 0) {
+      console.log("No patient data available for filtering");
+      return [];
+    }
+
+    // If no filters are applied, return original data
+    if (!filterBy || Object.keys(filterBy).length === 0) {
+      console.log("No filters applied, using all patient data:", patientData.length);
+      return patientData;
+    }
+
+    let filteredData = patientData;
+
+    // Filter by any specified criteria
+    if (filterBy.diagnosis || filterBy.diagnosticCategory || filterBy.symptom || filterBy.icd10Code) {
+      // Get patient IDs from filtered symptoms
+      const filteredSymptoms = extractedSymptoms.filter(symptom => {
+        return (!filterBy.diagnosis || symptom.diagnosis === filterBy.diagnosis) &&
+               (!filterBy.diagnosticCategory || symptom.diagnostic_category === filterBy.diagnosticCategory) &&
+               (!filterBy.symptom || symptom.symptom_segment === filterBy.symptom) &&
+               (!filterBy.icd10Code || symptom.symptom_id === filterBy.icd10Code);
+      });
+
+      const patientIds = new Set(filteredSymptoms.map(s => s.patient_id));
+      filteredData = patientData.filter(patient => patientIds.has(patient.patient_id || patient.id));
+      
+      console.log(`Filtered to ${filteredData.length} patients based on symptom criteria`);
+    }
+
+    return filteredData;
+  };
+
+  // Process and transform data into heatmap format for categories with data
+  useEffect(() => {
+    if (isLoading) {
+      console.log("Data still loading, skipping processing");
+      return;
+    }
+
+    const filteredPatients = getFilteredData();
+    
+    if (!filteredPatients || filteredPatients.length === 0) {
+      console.log("No filtered patients available for heatmap");
+      setHeatmapData([]);
+      setHasData(false);
+      return;
+    }
+
+    console.log(`Processing ${filteredPatients.length} patients for Age Range HRSN heatmap`);
+    
+    // Debug: Check actual patient data structure
+    if (filteredPatients.length > 0) {
+      console.log("Sample patient data structure:", {
+        firstPatient: filteredPatients[0],
+        sampleFields: Object.keys(filteredPatients[0]),
+        ageRelatedFields: {
+          age: filteredPatients[0]?.age,
+          ageRange: filteredPatients[0]?.ageRange,
+          age_range: filteredPatients[0]?.age_range,
+          date_of_birth: filteredPatients[0]?.date_of_birth
+        }
+      });
+    }
+    
+    try {
+      // Only process categories that have actual data (same as working bar/pie charts)
+      const hrsnCategories = [
+        { field: 'housing_insecurity', label: 'Housing Insecurity' },
+        { field: 'food_insecurity', label: 'Food Insecurity' }, 
+        { field: 'financial_status', label: 'Financial Status' }
+      ];
+
+      const processedData: HeatmapDataPoint[] = [];
+      let hasAnyData = false;
+
+      // Age ranges to use - match what's actually in the data
+      const ageRanges = ["18-25", "26-35", "36-50", "51-65", "65+", "Unknown"];
+
+      hrsnCategories.forEach(category => {
+        // Check if this category has any data
+        const categoryData = filteredPatients.filter(patient => {
+          const value = patient[category.field];
+          return value !== undefined && value !== null && value !== '';
+        });
+
+        if (categoryData.length === 0) {
+          console.log(`No data available for ${category.label}`);
+          return;
+        }
+
+        hasAnyData = true;
+        console.log(`Processing ${category.label} with ${categoryData.length} patients having data`);
+
+        // Create data structure for this category showing Yes/No by age range
+        const categoryHeatmapData: { x: string; y: number }[] = [];
+
+        ageRanges.forEach(ageRange => {
+          // Get patients in this age range who have data for this category
+          const ageRangePatients = categoryData.filter(patient => {
+            const patientAgeRange = calculateAgeRange(patient);
+            return patientAgeRange === ageRange;
+          });
+
+          // Debug logging for age range matching (only for first category)
+          if (ageRange === "18-25" && category.field === 'housing_insecurity') {
+            console.log(`🔍 HRSN HEATMAP DEBUG: For ${category.label} - ${ageRange}:`);
+            console.log(`Total category data patients: ${categoryData.length}`);
+            console.log(`Patients found in ${ageRange}: ${ageRangePatients.length}`);
+            console.log(`Sample patient age data:`, categoryData.slice(0, 5).map(p => ({
+              age: p.age,
+              ageRange: p.ageRange, 
+              age_range: p.age_range,
+              date_of_birth: p.date_of_birth,
+              calculated: calculateAgeRange(p),
+              [category.field]: p[category.field]
+            })));
+          }
+
+          // Always create data point for heatmap, even if 0 patients
+          const yesCount = ageRangePatients.filter(patient => {
+            const value = patient[category.field];
+            return value === 'Yes' || value === 'yes' || value === '1' || value === 'True' || value === 'true';
+          }).length;
+
+          const totalInRange = ageRangePatients.length;
+          const percentage = totalInRange > 0 ? Math.round((yesCount / totalInRange) * 100) : 0;
+          
+          categoryHeatmapData.push({
+            x: ageRange,
+            y: percentage
+          });
+
+          console.log(`${category.label} - ${ageRange}: ${yesCount}/${totalInRange} (${percentage}%)`);
+        });
+
+        if (categoryHeatmapData.length > 0) {
+          processedData.push({
+            id: category.label,
+            data: categoryHeatmapData
+          });
+        }
+      });
+
+      console.log("Generated heatmap data:", processedData);
+      setHeatmapData(processedData);
+      setHasData(hasAnyData);
+
+    } catch (error) {
+      console.error("Error processing HRSN heatmap data:", error);
+      setHeatmapData([]);
+      setHasData(false);
+    }
+  }, [patientData, extractedSymptoms, filterBy, isLoading]);
+
+  // Render loading state
+  if (isLoading) {
+    return (
+      <Card className="w-full h-96">
+        <CardHeader>
+          <CardTitle>Age Range HRSN Analysis</CardTitle>
+          <CardDescription>Loading HRSN data...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Render no data state
+  if (!hasData || heatmapData.length === 0) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Age Range HRSN Analysis</CardTitle>
+          <CardDescription>HRSN indicators by age demographics</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="text-center text-gray-500">
+            <p className="text-lg font-medium">No Data Available</p>
+            <p className="text-sm">No HRSN indicators found across age ranges in the current dataset</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const HeatmapComponent = () => {
+    // Ensure heatmapData is valid before rendering
+    const validData = Array.isArray(heatmapData) && heatmapData.length > 0 ? heatmapData : [];
+    
+    if (validData.length === 0) {
+      return (
+        <div style={{ height: isExpanded ? '600px' : '400px', width: '100%' }} className="flex items-center justify-center">
+          <div className="text-center text-gray-500">
+            <p className="text-lg font-medium">No Data Available</p>
+            <p className="text-sm">No HRSN indicators found for heatmap visualization</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ height: isExpanded ? '600px' : '400px', width: '100%' }}>
+        <ResponsiveHeatMap
+          data={validData}
+          margin={{ top: 60, right: 90, bottom: 60, left: 90 }}
+        valueFormat=">-.2s"
+        axisTop={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: -90,
+          legend: '',
+          legendOffset: 46
+        }}
+        axisRight={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: 0,
+          legend: 'HRSN Categories',
+          legendPosition: 'middle',
+          legendOffset: 70
+        }}
+        axisBottom={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: -90,
+          legend: 'Age Ranges',
+          legendPosition: 'middle',
+          legendOffset: 46
+        }}
+        axisLeft={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: 0,
+          legend: '',
+          legendPosition: 'middle',
+          legendOffset: -72
+        }}
+        colors={{
+          type: 'diverging',
+          scheme: 'red_yellow_blue',
+          divergeAt: 0.5,
+          minValue: 0,
+          maxValue: 100
+        }}
+        emptyColor="#555555"
+        hoverTarget="cell"
+        cellHoverOthersOpacity={0.25}
+        enableLabels={true}
+        labelTextColor={{
+          from: 'color',
+          modifiers: [
+            ['darker', 1.8]
+          ]
+        }}
+        tooltip={({ cell }) => (
+          <div
+            style={{
+              background: 'white',
+              padding: '9px 12px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              fontSize: '12px'
+            }}
+          >
+            <strong>{cell.serieId}</strong>
+            <br />
+            Age Range: <strong>{cell.data.x}</strong>
+            <br />
+            Problem Rate: <strong>{cell.formattedValue}%</strong>
+          </div>
+        )}
+      />
+    </div>
+  );
+
+  return (
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <div className="flex items-center space-x-2">
+          <CardTitle className="text-lg font-semibold">
+            Age Range HRSN Analysis
+          </CardTitle>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+              <DialogHeader>
+                <DialogTitle>Age Range HRSN Analysis - Expanded View</DialogTitle>
+                <DialogDescription>
+                  Detailed view of HRSN problem rates across age demographics
+                </DialogDescription>
+              </DialogHeader>
+              <HeatmapComponent />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <HeatmapComponent />
+      </CardContent>
+    </Card>
+  );
+}

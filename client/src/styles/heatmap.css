@@ -1,0 +1,113 @@
+/* Custom styles for heatmap visualization */
+
+/* Viridis color palette cells */
+.color-v1 {
+  background-color: #440154;
+  color: white;
+}
+
+.color-v2 {
+  background-color: #414487;
+  color: white;
+}
+
+.color-v3 {
+  background-color: #2a788e;
+  color: white;
+}
+
+.color-v4 {
+  background-color: #22a884;
+  color: white;
+}
+
+.color-v5 {
+  background-color: #7ad151;
+  color: #1a1a1a;
+}
+
+.color-v6 {
+  background-color: #fde725;
+  color: #1a1a1a;
+}
+
+.color-empty {
+  background-color: white;
+  color: #a0a0a0;
+}
+
+/* Sticky footer for date headers */
+.sticky-footer {
+  position: sticky !important;
+  bottom: 0 !important; 
+  z-index: 50 !important;
+  background-color: white !important;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.05) !important;
+}
+
+/* Row label styling */
+.row-label {
+  padding: 2px 4px;
+  font-size: 9px;
+  font-weight: 500;
+  background-color: white;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+  border-right: 1px solid #eee;
+}
+
+/* Rank indicator */
+.rank-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background-color: #f3f4f6;
+  border-radius: 50%;
+  margin-right: 4px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+/* Sum indicator */
+.sum-indicator {
+  margin-left: 4px;
+  color: #6b7280;
+  font-size: 8px;
+}
+
+/* Date label styling */
+.date-label {
+  transform: rotate(45deg);
+  transform-origin: bottom left;
+  margin-left: 8px;
+  margin-top: 8px;
+  padding-top: 4px;
+  padding-bottom: 16px;
+  height: 60px;
+  width: 70px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* Table cell */
+.cell {
+  padding: 1px 2px;
+  text-align: center;
+  height: 24px;
+  font-size: 9px;
+  border-right: 1px solid #f3f4f6;
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+}

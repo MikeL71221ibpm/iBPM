@@ -1,0 +1,963 @@
+/* Import Leaflet CSS for map functionality */
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --border: 214.3 31.8% 91.4%;
+  }
+  
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Fullscreen map styles */
+#choropleth-map-container:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  background: white;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+#choropleth-map-container:fullscreen .leaflet-container {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* HRSN Card Styling - Added 2px gap between header and content */
+.population-health-card .card-header {
+  min-height: 60px;
+  padding: 7px 16px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.population-health-card .card-content {
+  height: 218px;
+  padding: 0;
+  margin-top: 0.5px;
+}
+
+/* Custom animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Remove border from the header */
+nav, header, .bg-blue-100, [class*="border-blue"] {
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Full page dialog styling for expand functionality */
+.fullpage-dialog {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  transform: none !important;
+  z-index: 9999 !important;
+}
+
+.fullpage-dialog-fit-screen {
+  width: 98vw !important;
+  height: 98vh !important;
+  max-width: 98vw !important;
+  max-height: 98vh !important;
+  margin: 1vh 1vw !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  position: fixed !important;
+  top: 1vh !important;
+  left: 1vw !important;
+  right: 1vw !important;
+  bottom: 1vh !important;
+  transform: none !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.fullpage-dialog .pivot-content {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  background: white;
+}
+
+.fullpage-dialog-fit-screen .pivot-content {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding: 4px;
+  background: white;
+  width: 100%;
+  height: 100%;
+}
+
+/* Bold pivot table styling */
+.hard-coded-pivot {
+  background-color: white !important;
+  color: #1f2937 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.hard-coded-table {
+  background-color: white !important;
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.hard-coded-table td {
+  background-color: white !important;
+  color: #1f2937 !important;
+  border: 1px solid #d1d5db !important;
+  padding: 6px 8px !important;
+  text-align: center !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+}
+
+.hard-coded-table .sticky-col {
+  background-color: #f9fafb !important;
+  color: #1f2937 !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  text-align: left !important;
+  padding: 6px 10px !important;
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 10 !important;
+  max-width: 200px !important;
+  word-wrap: break-word !important;
+}
+
+.hard-coded-table .date-row td {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  padding: 4px !important;
+  height: 35px !important;
+  vertical-align: bottom !important;
+}
+
+/* Full page dialog styles */
+.fullpage-dialog {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  transform: none !important;
+  z-index: 9999 !important;
+  background-color: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.fullpage-dialog .pivot-content {
+  flex: 1 !important;
+  overflow: auto !important;
+  padding: 20px !important;
+  background-color: #ffffff !important;
+}
+
+/* Override any Radix/ShadCN styles for the dialog */
+[role="dialog"][aria-modal="true"] {
+  height: auto !important;
+}
+
+[data-state="open"] .fullpage-dialog {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Professional fit-to-screen data table layout */
+.fit-to-page {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.fit-to-page .hard-coded-table {
+  font-size: 9px !important;
+  width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  margin: 0 !important;
+  min-width: max-content !important;
+}
+
+.fit-to-page .hard-coded-table td {
+  padding: 2px 3px !important;
+  font-size: 9px !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+  border: 1px solid #d1d5db !important;
+  text-align: center !important;
+  font-weight: 500 !important;
+  min-width: 24px !important;
+  max-width: 40px !important;
+}
+
+.fit-to-page .hard-coded-table .sticky-col {
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  position: sticky !important;
+  left: 0 !important;
+  background: #f9fafb !important;
+  z-index: 10 !important;
+  text-align: left !important;
+  font-weight: 600 !important;
+  border-right: 2px solid #6b7280 !important;
+}
+
+.fit-to-page .hard-coded-table .date-row td {
+  font-size: 8px !important;
+  padding: 2px 1px !important;
+  height: 30px !important;
+  writing-mode: vertical-lr !important;
+  text-orientation: mixed !important;
+  background: #f3f4f6 !important;
+  font-weight: 600 !important;
+  min-width: 24px !important;
+  max-width: 40px !important;
+}
+
+.fit-to-page .hard-coded-table .date-row .sticky-col {
+  writing-mode: horizontal-tb !important;
+  text-orientation: initial !important;
+  height: 30px !important;
+  font-size: 10px !important;
+  background: #e5e7eb !important;
+  font-weight: 700 !important;
+}
+
+/* Container for horizontal scrolling */
+.fit-to-page .pivot-content {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  flex: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Special styling for the full page chart container */
+.fullpage-chart-container {
+  position: fixed !important;
+  top: 55px !important; /* Set to 55px to leave room for header with patient info */
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: calc(100vh - 55px) !important; /* Adjusted to match the new top value */
+  z-index: 50 !important;
+  background-color: white !important;
+  padding: 0 !important; /* No side padding */
+  display: flex !important;
+  align-items: flex-start !important; /* Keep flex-start for proper alignment */
+  justify-content: center !important;
+  overflow: auto !important;
+  scroll-behavior: smooth !important; /* Keep smooth scrolling */
+  padding-top: 0 !important; /* No top padding */
+}
+
+/* Custom styles for visualizations */
+.empty-cell {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  display: inline !important;
+  opacity: 0 !important;
+}
+
+/* Fix specifically for diagnosis and HRSN bubble charts */
+.diagnosis-specific-fix td,
+.diagnosis-specific-fix th,
+.diagnosis-specific-fix tr,
+.diagnosis-specific-fix table {
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+}
+
+.diagnosis-specific-fix td > div,
+.diagnosis-specific-fix td > span,
+.diagnosis-specific-fix th > div {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Override specific for the date headers in bubble charts */
+.diagnosis-specific-fix table:last-child td {
+  background-color: white !important;
+  border: none !important;
+}
+
+/* Make all bubble chart cells transparent by default */
+.bubble-chart-table td {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
+/* Hide empty cells completely in bubble charts */
+.bubble-chart-table td .empty-bubble-cell {
+  visibility: hidden !important;
+  background-color: transparent !important;
+  border: none !important;
+  height: 1px !important;
+  width: 1px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-block !important;
+  opacity: 0 !important;
+}
+
+/* Super aggressive rules to eliminate all borders in diagnosis and HRSN charts */
+.diagnosis-specific-fix td,
+.diagnosis-specific-fix table td,
+.diagnosis-specific-fix div td {
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-image: none !important;
+  border: none !important;
+  background-color: white !important;
+}
+
+/* Make sure empty cells have no borders or styling */
+.diagnosis-specific-fix td.bg-transparent {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+/* Custom styles for better usability */
+html, body {
+  overflow-y: auto !important;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: white !important;
+  color: #000 !important;
+}
+
+body, 
+.app-container, 
+#root, 
+div[class*="container"], 
+main, 
+div[role="main"], 
+.content-area {
+  background-color: white !important;
+  color: #000 !important;
+}
+
+body {
+  padding-bottom: 100px;
+}
+
+/* Super aggressive scrolling fixes */
+html, body {
+  overflow-y: auto !important;
+  height: 100% !important;
+}
+
+/* Reset all overflow settings for main containers */
+.app-root, 
+#root, 
+.flex-1,
+.container,
+main,
+section {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* Make ALL div elements scrollable by default when they have height constraints */
+div[style*="height"],
+div[class*="h-"],
+div[class*="max-h-"],
+div[class*="border"],
+div[class*="card"],
+div[class*="content"],
+div[class*="overflow"] {
+  overflow: auto !important;
+}
+
+/* Target scrollable containers - NO scrollbars */
+.overflow-y-auto,
+.overflow-auto,
+.max-h-80,
+.max-h-60, 
+.max-h-40,
+.max-h-\[300px\],
+.max-h-\[400px\],
+.h-\[450px\],
+.h-\[400px\],
+.card-content,
+div[class*='overflow-'],
+div[class*='max-h-'] {
+  overflow: visible !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Force visualization containers to scroll */
+.h-\[450px\],
+.h-\[400px\],
+.h-\[300px\],
+div.border.rounded-md.p-4,
+.visualization-container {
+  overflow: auto !important;
+  height: 450px !important;
+  min-height: 300px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  scrollbar-width: thin !important;
+}
+
+/* This targets the charts container directly */
+.tabContent > div > div {
+  overflow: auto !important;
+  max-height: 500px !important;
+}
+
+/* Ensure all symptom tables are scrollable */
+div.max-h-80,
+div[class*="overflow"],
+pre {
+  overflow: auto !important;
+  max-height: 300px !important;
+  scrollbar-width: thin !important;
+}
+
+/* Ensure long tables can scroll */
+table, 
+tbody,
+.table-wrapper {
+  overflow-x: auto !important;
+  display: block !important; 
+  max-width: 100% !important;
+  scrollbar-width: thin !important;
+}
+
+/* Hide all scrollbars */
+::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+html {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* Direct style on specific problem elements */
+[class="h-[450px] w-full"],
+[class="h-[400px] w-full"] {
+  overflow: auto !important;
+  height: 400px !important;
+}
+
+/* More compact styling */
+h1 {
+  font-size: 1.5rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+h2 {
+  font-size: 1.25rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.input, .select, input[type="text"], input[type="date"] {
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 0.875rem !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.btn, button {
+  height: auto !important;
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
+}
+
+.space-y-6 > * + * {
+  margin-top: 0.75rem !important;
+}
+
+:root {
+      --background: 0 0% 100%;
+--foreground: 20 14.3% 4.1%;
+--muted: 60 4.8% 95.9%;
+--muted-foreground: 25 5.3% 44.7%;
+--popover: 0 0% 100%;
+--popover-foreground: 20 14.3% 4.1%;
+--card: 0 0% 100%;
+--card-foreground: 20 14.3% 4.1%;
+--border: 20 5.9% 90%;
+--input: 20 5.9% 90%;
+--primary: 207 90% 54%;
+--primary-foreground: 211 100% 99%;
+--secondary: 60 4.8% 95.9%;
+--secondary-foreground: 24 9.8% 10%;
+--accent: 60 4.8% 95.9%;
+--accent-foreground: 24 9.8% 10%;
+--destructive: 0 84.2% 60.2%;
+--destructive-foreground: 60 9.1% 97.8%;
+--ring: 20 14.3% 4.1%;
+--radius: 0.5rem;
+  }
+  /* Disabling dark mode completely */
+  .dark {
+      /* Override with light theme values */
+      --background: 0 0% 100%;
+      --foreground: 20 14.3% 4.1%;
+      --muted: 60 4.8% 95.9%;
+      --muted-foreground: 25 5.3% 44.7%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 20 14.3% 4.1%;
+      --card: 0 0% 100%;
+      --card-foreground: 20 14.3% 4.1%;
+      --border: 20 5.9% 90%;
+      --input: 20 5.9% 90%;
+      --primary: 207 90% 54%;
+      --primary-foreground: 211 100% 99%;
+      --secondary: 60 4.8% 95.9%;
+      --secondary-foreground: 24 9.8% 10%;
+      --accent: 60 4.8% 95.9%;
+      --accent-foreground: 24 9.8% 10%;
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 60 9.1% 97.8%;
+      --ring: 20 14.3% 4.1%;
+      --radius: 0.5rem;
+  }
+
+/* Custom fix for diagnosis bubble chart gray lines */
+.diagnosis-specific-fix table,
+.diagnosis-specific-fix tr,
+.diagnosis-specific-fix td,
+.diagnosis-specific-fix tbody {
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-spacing: 0 !important;
+  border-collapse: collapse !important; 
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: white !important;
+}
+
+/* Aggressive styling for diagnosis table to remove grid lines */
+.diagnosis-table-no-grids,
+.diagnosis-table-no-grids tbody,
+.diagnosis-table-no-grids tr,
+.diagnosis-table-no-grids td {
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-spacing: 0 !important;
+  border-collapse: collapse !important;
+  background-color: white !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove all table borders and grid lines - targeted fix for diagnosis */
+table[class*="diagnosis"] * {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure bubble chart cells have no borders or grid lines */
+.diagnosis-table-no-grids td div {
+  background-color: white !important;
+  border: none !important;
+}
+
+/* Force all table elements to have white background and no borders */
+table, tr, td, th, tbody, thead {
+  border-color: transparent !important;
+}
+
+/* Sticky date headers styling */
+.heatmap-table tr.sticky.bottom-0,
+.bubble-chart-table tr.sticky.bottom-0 {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 50 !important;
+  background-color: white !important;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.heatmap-table tr.sticky.bottom-0 td,
+.bubble-chart-table tr.sticky.bottom-0 td {
+  background-color: white !important;
+  position: relative !important;
+  z-index: 51 !important;
+}
+
+/* Ensure date labels in bottom row are always visible */
+.heatmap-container,
+.bubble-chart-container {
+  position: relative !important;
+  overflow: auto !important;
+  max-height: 400px !important;
+}
+
+.heatmap-table,
+.bubble-chart-table {
+  position: relative !important;
+}
+
+/* Fix for bubble chart to ensure no gray squares */
+.bubble-chart-table td {
+  background-color: white !important;
+}
+
+/* Override all bubble styles to prevent gray squares */
+.bubble-chart-table td span,
+.bubble-chart-table div,
+.bubble-chart-table td:empty,
+.bubble-chart-table td:not(:first-child) {
+  background-color: white !important;
+  border-color: transparent !important;
+}
+
+/* Extra strong styling for diagnosis specific charts */
+.diagnosis-specific-fix * {
+  background-color: white !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
+  border-style: none !important;
+}
+
+.diagnosis-specific-fix div,
+.diagnosis-specific-fix td,
+.diagnosis-specific-fix table,
+.diagnosis-specific-fix tbody,
+.diagnosis-specific-fix tr {
+  background-color: white !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+}
+
+/* Disable borders completely for diagnosis/hrsn specific fixes */
+.diagnosis-specific-fix {
+  background-color: white !important;
+}
+
+.diagnosis-specific-fix td {
+  border: none !important;
+  outline: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  background-color: white !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+.diagnosis-specific-fix td > div {
+  background-color: white !important;
+  border: none !important;
+}
+
+/* Specific fix for the diagnosis bubbles */
+.diagnosis-specific-fix .bubble-chart-table td {
+  border: none !important;
+  box-shadow: none !important;
+  background: white !important;
+}
+
+/* Extremely aggressive rule for the dash character */
+td span.text-transparent,
+td span.text-gray-300,
+.bubble-chart-table td > span {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: inline-block !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Force fixed position styling for sticky rows */
+.sticky-date-row {
+  position: fixed !important;
+  bottom: 0 !important;
+  z-index: 100 !important;
+  background-color: white !important;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.heatmap-table tr:last-child,
+.bubble-chart-table tr:last-child {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 100 !important;
+  background-color: white !important;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Base styles moved to top @layer base block */
+
+/* Enhanced landscape chart view styles */
+.landscape {
+  width: 95vw !important;
+  height: 95vh !important;
+  aspect-ratio: 16/9 !important;
+  overflow: hidden !important;
+}
+
+.landscape-chart-container {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+/* New dialog-based landscape chart styles */
+.landscape-chart-dialog {
+  width: 95vw !important;
+  max-width: 95vw !important;
+  height: 95vh !important;
+  max-height: 95vh !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.landscape-chart-dialog .ScrollArea {
+  width: 100% !important;
+  height: 90vh !important;
+}
+
+.landscape-chart-dialog .DialogTitle {
+  padding: 1rem !important;
+  margin: 0 !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+.landscape-chart-dialog table {
+  width: 100% !important;
+}
+
+/* Expanded table styles for landscape view */
+.landscape-chart-dialog th,
+.landscape-chart-dialog td {
+  padding: 0.75rem 1rem !important;
+  white-space: nowrap !important;
+}
+
+.landscape-chart-dialog th:first-child,
+.landscape-chart-dialog td:first-child {
+  font-weight: 600 !important;
+  min-width: 200px !important;
+  max-width: 300px !important;
+}
+
+/* Special styling for heatmap in landscape view */
+.landscape-chart-container [class*="responsiveHeatMap"] svg {
+  width: 100% !important;
+  height: calc(95vh - 140px) !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Special styling for bubble chart in landscape view */
+.landscape-chart-container [class*="responsiveScatterPlot"] svg,
+.landscape-chart-container [class*="responsiveBubble"] svg {
+  width: 100% !important;
+  height: calc(95vh - 140px) !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Special styling for pivot tables in landscape view */
+.landscape-chart-container .pivot-table-container {
+  width: 100% !important;
+  height: calc(95vh - 140px) !important;
+  overflow: auto !important;
+}
+
+.landscape-chart-container .pivot-table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  font-size: 14px !important;
+}
+
+.landscape-chart-container .pivot-table th,
+.landscape-chart-container .pivot-table td {
+  padding: 8px 12px !important;
+  text-align: left !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.landscape-chart-container .pivot-table th {
+  background-color: #f8fafc !important;
+  font-weight: 600 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+}
+
+.landscape-chart-container .pivot-table tr:nth-child(even) {
+  background-color: #f8fafc !important;
+}
+
+/* Custom pulse animation for the Run Analysis button */
+.animate-attention-pulse {
+  animation: pulsate 1.2s ease-in-out 3;
+  box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  background-color: rgba(34, 197, 94, 0.08) !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* Add highlight effect to make the button more noticeable */
+.animate-attention-pulse::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border: 2px dashed rgba(34, 197, 94, 0.6);
+  border-radius: 6px;
+  animation: borderDash 3s linear infinite;
+  z-index: -1;
+}
+
+@keyframes borderDash {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulsate {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.2);
+    transform: scale(1.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    transform: scale(1);
+  }
+}
+
+/* Fit to screen mode - override all height constraints */
+.hard-coded-table-container.fit-to-page {
+  height: 85vh !important;
+  max-height: 85vh !important;
+  min-height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+.hard-coded-table-container.fit-to-page .hard-coded-table {
+  height: auto !important;
+  max-height: none !important;
+  min-height: auto !important;
+}
+
+.hard-coded-table-container.fit-to-page tbody {
+  height: auto !important;
+  max-height: none !important;
+  min-height: auto !important;
+}
+
+/* Override any global height constraints that might affect pivot tables */
+.fit-to-page [class*="h-["],
+.fit-to-page [class*="max-h-["] {
+  height: auto !important;
+  max-height: none !important;
+  min-height: auto !important;
+}
+
+/* Force dialog content to expand fully in fit-to-page mode */
+[data-state="open"].fit-to-page {
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Override dialog viewport constraints */
+.fit-to-page[data-radix-dialog-content] {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+

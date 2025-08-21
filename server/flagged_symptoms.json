@@ -1,0 +1,702 @@
+[
+  {
+    "symptomId": "Z406",
+    "symptomSegment": "hurt by friends often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z407",
+    "symptomSegment": "hurt by family fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z408",
+    "symptomSegment": "hurt by friends fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z409",
+    "symptomSegment": "hurt by family frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z410",
+    "symptomSegment": "hurt by friends frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z411",
+    "symptomSegment": "hurt by others sometimes",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z412",
+    "symptomSegment": "hurt by others often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z413",
+    "symptomSegment": "hurt by others fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z414",
+    "symptomSegment": "hurt by others frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z415",
+    "symptomSegment": "bullied sometimes",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z415",
+    "symptomSegment": "family or friends never threaten the client",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z416",
+    "symptomSegment": "bullied often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z417",
+    "symptomSegment": "bullied fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z418",
+    "symptomSegment": "bullied frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T74.11",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z419",
+    "symptomSegment": "family talk down or insult frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z420",
+    "symptomSegment": "family talk down or insult often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z421",
+    "symptomSegment": "family never talks down to client",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z421",
+    "symptomSegment": "family talk down or insult fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z422",
+    "symptomSegment": "family talk down or insult frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z423",
+    "symptomSegment": "others talk down or insult frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z424",
+    "symptomSegment": "others talk down or insult often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z425",
+    "symptomSegment": "others talk down or insult fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z426",
+    "symptomSegment": "others talk down or insult frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z427",
+    "symptomSegment": "people talk down or insult often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z428",
+    "symptomSegment": "people talk down or insult often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z429",
+    "symptomSegment": "people talk down or insult fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z430",
+    "symptomSegment": "people talk down or insult frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z431",
+    "symptomSegment": "family threatens with harm sometimes",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z432",
+    "symptomSegment": "family threatens with harm often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z433",
+    "symptomSegment": "family threatens with harm fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z434",
+    "symptomSegment": "family threatens with harm frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z435",
+    "symptomSegment": "friends threaten with harm sometimes",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z436",
+    "symptomSegment": "friends threaten with harm often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z437",
+    "symptomSegment": "friends threaten with harm fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z438",
+    "symptomSegment": "friends threaten with harm frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z439",
+    "symptomSegment": "family screams at me sometimes",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z439",
+    "symptomSegment": "family screams at me rarely",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z439",
+    "symptomSegment": "family never screams at client",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z440",
+    "symptomSegment": "family screams at me often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z441",
+    "symptomSegment": "family screams at me fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z442",
+    "symptomSegment": "family screams at me frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z443",
+    "symptomSegment": "friends scream at me sometimes",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z444",
+    "symptomSegment": "friends scream at me often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z445",
+    "symptomSegment": "friends scream at me fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z446",
+    "symptomSegment": "friends scream at me frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z447",
+    "symptomSegment": "people scream at me sometimes",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z448",
+    "symptomSegment": "people scream at me often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z449",
+    "symptomSegment": "people scream at me fairly often",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z450",
+    "symptomSegment": "people scream at me frequently",
+    "diagnosis": "Safety/General Safety",
+    "diagnosisCode": "T76.31",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z451",
+    "symptomSegment": "very hard to pay for food",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z59.41",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z452",
+    "symptomSegment": "very hard to pay for housing",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z59.6",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z453",
+    "symptomSegment": "very hard to pay for medical care",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z59.6",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z455",
+    "symptomSegment": "very hard to pay for heating",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z59.6",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z455",
+    "symptomSegment": "somewhat hard to pay for food",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z59.6",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z456",
+    "symptomSegment": "somewhat hard to pay for housing",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z59.6",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z457",
+    "symptomSegment": "somewhat hard to pay for medical care",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z59.6",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z458",
+    "symptomSegment": "somewhat hard to pay for heating",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z59.6",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z459",
+    "symptomSegment": "help keeping employment",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z459",
+    "symptomSegment": "help with employment",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z459",
+    "symptomSegment": "help finding employment",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z459",
+    "symptomSegment": "I do not want help with employment",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z459",
+    "symptomSegment": "I do not need help with employment",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z459",
+    "symptomSegment": "has a low income",
+    "diagnosis": "Financial Strain",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z460",
+    "symptomSegment": "need a lot of help with day-to-day activities",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z461",
+    "symptomSegment": "need a little help with day to day activities",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z462",
+    "symptomSegment": "need a lot of help with bathing",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z462",
+    "symptomSegment": "I do not need any help",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z462",
+    "symptomSegment": "need a little help with bathing",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z463",
+    "symptomSegment": "need a lot of help with preparing meals",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z463",
+    "symptomSegment": "need a little help with preparing meals",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z464",
+    "symptomSegment": "need a lot of help with shopping",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z464",
+    "symptomSegment": "need a little help with shopping",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z465",
+    "symptomSegment": "need a lot of help with managing finances",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z465",
+    "symptomSegment": "need a little help with managing finances",
+    "diagnosis": "Family and Community Support",
+    "diagnosisCode": "Zxx.x",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z466",
+    "symptomSegment": "feels lonely rarely",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z467",
+    "symptomSegment": "feels lonely sometimes",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z468",
+    "symptomSegment": "feels lonely often",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z469",
+    "symptomSegment": "feels lonely always",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z60.4",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z470",
+    "symptomSegment": "sometimes feels lonely",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z471",
+    "symptomSegment": "often feels lonely",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z472",
+    "symptomSegment": "always feels isolated from others",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z60.4",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z60.4",
+    "symptomSegment": "always feels lonely",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z60.4",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z474",
+    "symptomSegment": "rarely feels isolated from others",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z474",
+    "symptomSegment": "feels isolated from others rarely",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z474",
+    "symptomSegment": "rarely feels isolated from others",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z475",
+    "symptomSegment": "language other than English spoken at home",
+    "diagnosis": "Education",
+    "diagnosisCode": "Z55.4",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z475",
+    "symptomSegment": "speaks a language other than English in the home",
+    "diagnosis": "Education",
+    "diagnosisCode": "Z55.4",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z476",
+    "symptomSegment": "English is not the primary language in the home",
+    "diagnosis": "Education",
+    "diagnosisCode": "Z55.4",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z477",
+    "symptomSegment": "feels isolated from others sometimes",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z478",
+    "symptomSegment": "English is not the primary language in the home",
+    "diagnosis": "Education",
+    "diagnosisCode": "Z55.4",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z479",
+    "symptomSegment": "feels isolated from others often",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z480",
+    "symptomSegment": "feels isolated from others always",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z60.4",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z481",
+    "symptomSegment": "need help completing job training",
+    "diagnosis": "Employment",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z482",
+    "symptomSegment": "need help starting job training",
+    "diagnosis": "Employment",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z482",
+    "symptomSegment": "sometimes feels isolated from others",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z483",
+    "symptomSegment": "need help getting a high school diploma",
+    "diagnosis": "Employment",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z484",
+    "symptomSegment": "often feels isolated from others",
+    "diagnosis": "Social connections / isolation",
+    "diagnosisCode": "Z63.5",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z485",
+    "symptomSegment": "need help getting a GED",
+    "diagnosis": "Employment",
+    "diagnosisCode": "Z56.8",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z486",
+    "symptomSegment": "physical strain related to work",
+    "diagnosis": "Employment",
+    "diagnosisCode": "Z56.6",
+    "issue": "Missing diagnostic_category"
+  },
+  {
+    "symptomId": "Z487",
+    "symptomSegment": "mental strain related to work",
+    "diagnosis": "Employment",
+    "diagnosisCode": "Z56.6",
+    "issue": "Missing diagnostic_category"
+  }
+]

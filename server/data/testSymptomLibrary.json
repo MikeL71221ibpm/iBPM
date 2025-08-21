@@ -1,0 +1,402 @@
+[
+  {
+    "symptomId": "SYM_TEST_1",
+    "symptomSegment": "Test symptom 1",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_2",
+    "symptomSegment": "Test symptom 2",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_3",
+    "symptomSegment": "Test symptom 3",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_4",
+    "symptomSegment": "Test symptom 4",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_5",
+    "symptomSegment": "Test symptom 5",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_6",
+    "symptomSegment": "Test symptom 6",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_7",
+    "symptomSegment": "Test symptom 7",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_8",
+    "symptomSegment": "Test symptom 8",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_9",
+    "symptomSegment": "Test symptom 9",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_10",
+    "symptomSegment": "Test symptom 10",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_11",
+    "symptomSegment": "Test symptom 11",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_12",
+    "symptomSegment": "Test symptom 12",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_13",
+    "symptomSegment": "Test symptom 13",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_14",
+    "symptomSegment": "Test symptom 14",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_15",
+    "symptomSegment": "Test symptom 15",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_16",
+    "symptomSegment": "Test symptom 16",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_17",
+    "symptomSegment": "Test symptom 17",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_18",
+    "symptomSegment": "Test symptom 18",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_19",
+    "symptomSegment": "Test symptom 19",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_20",
+    "symptomSegment": "Test symptom 20",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_21",
+    "symptomSegment": "Test symptom 21",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_22",
+    "symptomSegment": "Test symptom 22",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_23",
+    "symptomSegment": "Test symptom 23",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_24",
+    "symptomSegment": "Test symptom 24",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_25",
+    "symptomSegment": "Test symptom 25",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_26",
+    "symptomSegment": "Test symptom 26",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_27",
+    "symptomSegment": "Test symptom 27",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_28",
+    "symptomSegment": "Test symptom 28",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_29",
+    "symptomSegment": "Test symptom 29",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_30",
+    "symptomSegment": "Test symptom 30",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_31",
+    "symptomSegment": "Test symptom 31",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_32",
+    "symptomSegment": "Test symptom 32",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_33",
+    "symptomSegment": "Test symptom 33",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_34",
+    "symptomSegment": "Test symptom 34",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_35",
+    "symptomSegment": "Test symptom 35",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_36",
+    "symptomSegment": "Test symptom 36",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_37",
+    "symptomSegment": "Test symptom 37",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_38",
+    "symptomSegment": "Test symptom 38",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_39",
+    "symptomSegment": "Test symptom 39",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_40",
+    "symptomSegment": "Test symptom 40",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_41",
+    "symptomSegment": "Test symptom 41",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_42",
+    "symptomSegment": "Test symptom 42",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_43",
+    "symptomSegment": "Test symptom 43",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_44",
+    "symptomSegment": "Test symptom 44",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_45",
+    "symptomSegment": "Test symptom 45",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_46",
+    "symptomSegment": "Test symptom 46",
+    "diagnosis": "Depression",
+    "diagnosticCategory": "Depression",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_47",
+    "symptomSegment": "Test symptom 47",
+    "diagnosis": "Anxiety",
+    "diagnosticCategory": "Anxiety",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_48",
+    "symptomSegment": "Test symptom 48",
+    "diagnosis": "PTSD",
+    "diagnosticCategory": "PTSD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_49",
+    "symptomSegment": "Test symptom 49",
+    "diagnosis": "OCD",
+    "diagnosticCategory": "OCD",
+    "symptomProblem": null,
+    "sympProb": null
+  },
+  {
+    "symptomId": "SYM_TEST_50",
+    "symptomSegment": "Test symptom 50",
+    "diagnosis": "Other",
+    "diagnosticCategory": "Other",
+    "symptomProblem": null,
+    "sympProb": null
+  }
+]

@@ -1,0 +1,10 @@
+// FIRST WORKING CHART IMPLEMENTATION (HRSN):
+label={d => {
+  // For percentage mode, use the chartPercentage value we calculated
+  if (displayMode === "percentage") {
+    return `${d.data.chartPercentage || 0}%`;
+  } else {
+    // For count mode, use the raw value
+    return `${d.value || 0}`;
+  }
+}}

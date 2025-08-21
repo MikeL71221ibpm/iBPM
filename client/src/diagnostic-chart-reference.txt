@@ -1,0 +1,128 @@
+// Diagnostic Category Chart - May 21, 2025
+// Standardized chart component with consistent export functionality
+
+import React, { useMemo } from 'react';
+import { ResponsiveBar } from '@nivo/bar';
+import { Card, CardContent } from '@/components/ui/card';
+import { getThemeColor, formatChartValue, CHART_DIMENSIONS } from '@/lib/chart-helpers';
+
+interface DiagnosticCategoryChartProps {
+  data: any[];
+  displayMode?: 'count' | 'percentage';
+  colorTheme?: string;
+}
+
+export default function DiagnosticCategoryChart({
+  data = [],
+  displayMode = 'count',
+  colorTheme = 'spectral'
+}: DiagnosticCategoryChartProps) {
+  // Format data for the chart
+  const chartData = useMemo(() => {
+    // Sort data by value in descending order
+    return [...data]
+      .sort((a, b) => (b.value || 0) - (a.value || 0))
+      .map((item, index) => ({
+        id: item.id || item.category || `Category ${index + 1}`,
+        value: item.value || 0,
+        percentage: item.percentage || 0,
+        displayValue: displayMode === 'percentage' ? item.percentage || 0 : item.value || 0
+      }));
+  }, [data, displayMode]);
+
+  // Use proper color generation from our standardized theme system
+  const getColor = (bar: any) => {
+    const index = chartData.findIndex(d => d.id === bar.id);
+    return getThemeColor(index, chartData.length, colorTheme);
+  };
+
+  // Use our standardized formatter for consistent display
+  const formatValue = (value: number) => {
+    return formatChartValue(value, displayMode);
+  };
+
+  if (!chartData.length) {
+    return (
+      <Card className="w-full h-96 flex items-center justify-center">
+        <p className="text-muted-foreground">No diagnostic category data available</p>
+      </Card>
+    );
+  }
+
+  return (
+    <div 
+      id="diagnostic_category_chart"
+      className={CHART_DIMENSIONS.standard.className}
+    >
+      <ResponsiveBar
+        data={chartData}
+        keys={['displayValue']}
+        indexBy="id"
+        margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+        padding={0.3}
+        valueScale={{ type: 'linear' }}
+        indexScale={{ type: 'band', round: true }}
+        colors={getColor}
+        borderRadius={4}
+        borderWidth={1}
+        borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: -45,
+          legend: 'Diagnostic Categories',
+          legendPosition: 'middle',
+          legendOffset: 40
+        }}
+        axisLeft={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: 0,
+          legend: displayMode === 'percentage' ? 'Percentage (%)' : 'Count',
+          legendPosition: 'middle',
+          legendOffset: -50
+        }}
+        enableGridY={true}
+        labelSkipWidth={12}
+        labelSkipHeight={12}
+        labelTextColor={{ from: 'color', modifiers: [['darker', 3]] }}
+        role="application"
+        ariaLabel="Diagnostic Category Chart"
+        barAriaLabel={e => `${e.id}: ${e.formattedValue} in category: ${e.indexValue}`}
+        tooltip={({ id, value, color }) => (
+          <div
+            style={{
+              padding: 12,
+              backgroundColor: '#ffffff',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+              borderRadius: 4,
+            }}
+          >
+            <div>
+              <strong>{id}</strong>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginTop: 4,
+              }}
+            >
+              <div
+                style={{
+                  width: 12,
+                  height: 12,
+                  backgroundColor: color,
+                  marginRight: 8,
+                }}
+              />
+              <span>{displayMode === 'percentage' ? `${value}%` : value}</span>
+            </div>
+          </div>
+        )}
+      />
+    </div>
+  );
+}

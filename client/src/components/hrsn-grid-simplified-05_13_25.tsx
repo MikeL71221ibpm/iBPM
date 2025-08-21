@@ -1,0 +1,733 @@
+// Simplified HRSN Grid Prototype - May 13, 2025
+// This is a simplified version to ensure it works properly
+
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
+// Import chart components
+import CategoricalHrsnChart from "./categorical-hrsn-chart-05_13_25";
+import HrsnPieChart from "./hrsn-pie-chart-05_13_25";
+// Removed problematic HrsnHeatmap import - using CategoricalHrsnChart for all chart types
+
+// Helper function to cast unknown to string safely
+function safeString(value: unknown): string {
+  return String(value || "");
+}
+
+// Define the interface for props
+interface PopulationHealthChartsProps {
+  data?: any;
+  isLoading?: boolean;
+}
+
+// List of all possible HRSN indicators
+const hrsnIndicators = [
+  "Housing Insecurity",
+  "Food Insecurity",
+  "Transportation Access",
+  "Education Level",
+  "Employment Status",
+  "Health Insurance",
+  "Veteran Status",
+  "Financial Status"
+];
+
+export default function HrsnGridSimplified({ 
+  data = { 
+    patients: [
+      {
+        id: 1,
+        gender: "Female",
+        age_range: "45-54",
+        housing_insecurity: "Yes",
+        food_insecurity: "No",
+        access_to_transportation: "Yes",
+        education_level: "College degree",
+        employment_status: "Employed"
+      },
+      {
+        id: 2,
+        gender: "Male",
+        age_range: "35-44",
+        housing_insecurity: "No",
+        food_insecurity: "Yes",
+        access_to_transportation: "No",
+        education_level: "High school",
+        employment_status: "Unemployed"
+      },
+      {
+        id: 3,
+        gender: "Female",
+        age_range: "55-64",
+        housing_insecurity: "Yes",
+        food_insecurity: "Yes",
+        access_to_transportation: "No",
+        education_level: "Graduate degree",
+        employment_status: "Retired"
+      }
+    ] 
+  }, 
+  isLoading = false 
+}: PopulationHealthChartsProps) {
+  // State for chart selection and export options
+  const [selectedCharts, setSelectedCharts] = useState<string[]>([]);
+  const [colorTheme, setColorTheme] = useState<string>("blue");
+  const [showPatientHeader, setShowPatientHeader] = useState<boolean>(true);
+  const availableColorSchemes = ["blue", "green", "red", "purple", "orange", "teal"];
+
+  // Function to toggle select all charts
+  const toggleSelectAll = () => {
+    if (selectedCharts.length === hrsnIndicators.length * 3) {
+      setSelectedCharts([]);
+    } else {
+      // Generate IDs for all charts (indicatorName_chartType)
+      const allChartIds = hrsnIndicators.flatMap(indicator => 
+        ["count", "percentage", "distribution"].map(type => `${indicator}_${type}`)
+      );
+      setSelectedCharts(allChartIds);
+    }
+  };
+
+  // Function to toggle individual chart selection
+  const toggleChartSelection = (chartId: string) => {
+    setSelectedCharts(prev => 
+      prev.includes(chartId) 
+        ? prev.filter(id => id !== chartId)
+        : [...prev, chartId]
+    );
+  };
+
+  // Function to export selected charts to Excel
+  const exportToExcel = () => {
+    if (selectedCharts.length === 0 || !data || !data.patients) return;
+
+    const workbook = XLSX.utils.book_new();
+    
+    // For each selected chart, create a worksheet
+    selectedCharts.forEach(chartId => {
+      const [indicator, chartType] = chartId.split('_');
+      
+      // Prepare data for the specific chart (simplified)
+      let worksheetData: any[] = [];
+      
+      // Example for housing insecurity count
+      if (indicator === "Housing Insecurity" && chartType === "count") {
+        worksheetData = [
+          { AgeRange: "18-24", Count: data.patients.filter((p: any) => p.age_range === "18-24" && p.housing_insecurity === "Yes").length },
+          { AgeRange: "25-34", Count: data.patients.filter((p: any) => p.age_range === "25-34" && p.housing_insecurity === "Yes").length },
+          { AgeRange: "35-44", Count: data.patients.filter((p: any) => p.age_range === "35-44" && p.housing_insecurity === "Yes").length },
+          { AgeRange: "45-54", Count: data.patients.filter((p: any) => p.age_range === "45-54" && p.housing_insecurity === "Yes").length },
+          { AgeRange: "55-64", Count: data.patients.filter((p: any) => p.age_range === "55-64" && p.housing_insecurity === "Yes").length },
+          { AgeRange: "65+", Count: data.patients.filter((p: any) => p.age_range === "65+" && p.housing_insecurity === "Yes").length }
+        ];
+      }
+      
+      // Add worksheet to workbook
+      if (worksheetData.length > 0) {
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, `${indicator}_${chartType}`);
+      }
+    });
+    
+    // Save the workbook
+    XLSX.writeFile(workbook, 'hrsn_analytics.xlsx');
+  };
+
+  // Function to export selected charts to PDF
+  const exportToPdf = async () => {
+    if (selectedCharts.length === 0) return;
+    
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    let yOffset = 10;
+    
+    // Add title
+    pdf.setFontSize(18);
+    pdf.text('HRSN Analytics Report', 105, yOffset, { align: 'center' });
+    yOffset += 10;
+    
+    // Add patient information header if enabled
+    if (showPatientHeader) {
+      pdf.setFontSize(12);
+      pdf.text(`Patient Group: ${data?.patients?.length || 0} patients`, 105, yOffset, { align: 'center' });
+      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 105, yOffset + 5, { align: 'center' });
+      yOffset += 15;
+    }
+    
+    // Save the PDF
+    pdf.save('hrsn_analytics.pdf');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-primary rounded-full"></div>
+        <span className="ml-3 text-lg">Loading HRSN data...</span>
+      </div>
+    );
+  }
+  
+  // Check if we have any valid data to display
+  if (!data || !data.patients || data.patients.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <p className="text-xl font-medium text-muted-foreground">No HRSN data available</p>
+        <p className="text-sm text-muted-foreground mt-2">Try running a new analysis with different parameters</p>
+      </div>
+    );
+  }
+
+  // Calculate statistics for each indicator
+  const stats = {
+    housingInsecurity: {
+      count: data.patients.filter((p: any) => p.housing_insecurity === "Yes").length,
+      percentage: Math.round((data.patients.filter((p: any) => p.housing_insecurity === "Yes").length / data.patients.length) * 100)
+    },
+    foodInsecurity: {
+      count: data.patients.filter((p: any) => p.food_insecurity === "Yes").length,
+      percentage: Math.round((data.patients.filter((p: any) => p.food_insecurity === "Yes").length / data.patients.length) * 100)
+    },
+    transportation: {
+      count: data.patients.filter((p: any) => p.access_to_transportation === "No").length,
+      percentage: Math.round((data.patients.filter((p: any) => p.access_to_transportation === "No").length / data.patients.length) * 100)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* HRSN Header and Controls */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 bg-muted/50 p-6 rounded-lg shadow-sm border">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">HRSN Analytics</h2>
+          <p className="text-muted-foreground text-base">
+            Showing data for <span className="font-semibold">{data.patients.length}</span> patients
+          </p>
+        </div>
+        
+        {/* Chart Controls */}
+        <div className="flex flex-col md:flex-row gap-5 items-start md:items-center bg-white/50 p-3 rounded-md">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="show_patient_header" 
+                checked={showPatientHeader} 
+                onCheckedChange={(checked) => setShowPatientHeader(checked as boolean)}
+              />
+              <Label htmlFor="show_patient_header" className="text-sm">Show patient info in exports</Label>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1 h-9 font-medium"
+              onClick={exportToExcel}
+              disabled={selectedCharts.length === 0}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Export to Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1 h-9 font-medium"
+              onClick={exportToPdf}
+              disabled={selectedCharts.length === 0}
+            >
+              <FileText className="h-4 w-4" />
+              Export to PDF
+            </Button>
+            <Button 
+              variant={selectedCharts.length > 0 ? "default" : "outline"}
+              size="sm" 
+              className="gap-1 h-9 font-medium"
+              onClick={toggleSelectAll}
+            >
+              <Checkbox 
+                checked={selectedCharts.length === hrsnIndicators.length * 3} 
+                className="mr-1 h-4 w-4 border-2"
+              />
+              {selectedCharts.length === hrsnIndicators.length * 3 
+                ? "Unselect All Charts" 
+                : "Select All Charts"
+              }
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              {selectedCharts.length > 0 ? `${selectedCharts.length} charts selected` : "No charts selected"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Card */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-medium">Selection Criteria</CardTitle>
+          <CardDescription>Filter data based on diagnosis, symptoms, and demographics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-6 md:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Diagnosis Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="diagnosis-filter">Diagnosis</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="diagnosis-filter" className="w-full">
+                      <SelectValue placeholder="All Diagnoses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Diagnoses</SelectItem>
+                      <SelectItem value="depression">Depression</SelectItem>
+                      <SelectItem value="anxiety">Anxiety</SelectItem>
+                      <SelectItem value="substance">Substance Use</SelectItem>
+                      <SelectItem value="bipolar">Bipolar Disorder</SelectItem>
+                      <SelectItem value="schizophrenia">Schizophrenia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Diagnosis Code Filter (ICD-10) */}
+                <div className="space-y-2">
+                  <Label htmlFor="diagnosis-code-filter">Diagnosis Code</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="diagnosis-code-filter" className="w-full">
+                      <SelectValue placeholder="All Codes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Codes</SelectItem>
+                      <SelectItem value="F32">F32 (Depression)</SelectItem>
+                      <SelectItem value="F41">F41 (Anxiety)</SelectItem>
+                      <SelectItem value="F10">F10 (Alcohol Use)</SelectItem>
+                      <SelectItem value="F31">F31 (Bipolar)</SelectItem>
+                      <SelectItem value="F20">F20 (Schizophrenia)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Diagnostic Category Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="diagnostic-category-filter">Diagnostic Category</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="diagnostic-category-filter" className="w-full">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="mood">Mood Disorders</SelectItem>
+                      <SelectItem value="anxiety">Anxiety Disorders</SelectItem>
+                      <SelectItem value="substance">Substance Use Disorders</SelectItem>
+                      <SelectItem value="personality">Personality Disorders</SelectItem>
+                      <SelectItem value="psychotic">Psychotic Disorders</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Age Range Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="age-range-filter">Age Range</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="age-range-filter" className="w-full">
+                      <SelectValue placeholder="All Ages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Ages</SelectItem>
+                      <SelectItem value="0-17">0-17</SelectItem>
+                      <SelectItem value="18-24">18-24</SelectItem>
+                      <SelectItem value="25-34">25-34</SelectItem>
+                      <SelectItem value="35-44">35-44</SelectItem>
+                      <SelectItem value="45-54">45-54</SelectItem>
+                      <SelectItem value="55-64">55-64</SelectItem>
+                      <SelectItem value="65+">65+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Symptom Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="symptom-filter">Symptom</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="symptom-filter" className="w-full">
+                      <SelectValue placeholder="All Symptoms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Symptoms</SelectItem>
+                      <SelectItem value="depression">Depressed Mood</SelectItem>
+                      <SelectItem value="anxiety">Anxiety</SelectItem>
+                      <SelectItem value="insomnia">Insomnia</SelectItem>
+                      <SelectItem value="fatigue">Fatigue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Visit Date Range */}
+                <div className="space-y-2">
+                  <Label htmlFor="date-range-filter">Date Range</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="date-range-filter" className="w-full">
+                      <SelectValue placeholder="All Dates" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Dates</SelectItem>
+                      <SelectItem value="last30">Last 30 Days</SelectItem>
+                      <SelectItem value="last90">Last 90 Days</SelectItem>
+                      <SelectItem value="last180">Last 6 Months</SelectItem>
+                      <SelectItem value="last365">Last Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* HRSN Indicator Selector */}
+                <div className="space-y-2">
+                  <Label htmlFor="hrsn-indicator-filter">HRSN Indicator</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger id="hrsn-indicator-filter" className="w-full">
+                      <SelectValue placeholder="All Indicators" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Indicators</SelectItem>
+                      <SelectItem value="housing_insecurity">Housing Insecurity</SelectItem>
+                      <SelectItem value="food_insecurity">Food Insecurity</SelectItem>
+                      <SelectItem value="transportation">Transportation Access</SelectItem>
+                      <SelectItem value="education_level">Education Level</SelectItem>
+                      <SelectItem value="employment_status">Employment Status</SelectItem>
+                      <SelectItem value="health_insurance">Health Insurance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Color Theme Selector */}
+                <div className="space-y-2">
+                  <Label htmlFor="color-theme">Chart Color</Label>
+                  <Select 
+                    value={colorTheme} 
+                    onValueChange={setColorTheme}
+                  >
+                    <SelectTrigger id="color-theme" className="w-full">
+                      <SelectValue placeholder="Select a theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableColorSchemes.map(scheme => (
+                        <SelectItem key={scheme} value={scheme}>
+                          {scheme.charAt(0).toUpperCase() + scheme.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-end justify-center sm:justify-end">
+              <Button className="w-full sm:w-auto">
+                Apply Filters
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Housing Insecurity Indicator */}
+      <Card id="housing_insecurity_section" className="shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-base font-medium">Housing Insecurity</CardTitle>
+              <CardDescription>
+                {stats.housingInsecurity.percentage}% of patients report housing insecurity
+              </CardDescription>
+            </div>
+            <Checkbox 
+              id="select_housing_insecurity"
+              checked={["Housing Insecurity_count", "Housing Insecurity_percentage", "Housing Insecurity_distribution"].every(id => selectedCharts.includes(id))}
+              onCheckedChange={() => {
+                const ids = ["Housing Insecurity_count", "Housing Insecurity_percentage", "Housing Insecurity_distribution"];
+                const allSelected = ids.every(id => selectedCharts.includes(id));
+                
+                if (allSelected) {
+                  setSelectedCharts(prev => prev.filter(id => !ids.includes(id)));
+                } else {
+                  setSelectedCharts(prev => [...new Set([...prev, ...ids])]);
+                }
+              }}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card id="Housing Insecurity_count" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Housing Insecurity_count")}
+                  onCheckedChange={() => toggleChartSelection("Housing Insecurity_count")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Count by Gender</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <CategoricalHrsnChart
+                  data={data?.patients || []}
+                  categoryName="gender"
+                  title="Housing Insecurity by Gender"
+                  filterBy={{ symptom: "housing_insecurity" }}
+                  colorScheme={colorTheme}
+                  height={220}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card id="Housing Insecurity_percentage" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Housing Insecurity_percentage")}
+                  onCheckedChange={() => toggleChartSelection("Housing Insecurity_percentage")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Percentage by Age</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <HrsnPieChart 
+                  data={data?.patients || []}
+                  fieldName="age_range"
+                  filterField="housing_insecurity"
+                  filterValue="Yes"
+                  colorScheme={colorTheme}
+                  height={220}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card id="Housing Insecurity_distribution" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Housing Insecurity_distribution")}
+                  onCheckedChange={() => toggleChartSelection("Housing Insecurity_distribution")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Distribution by Age</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <CategoricalHrsnChart
+                  patientData={data?.patients || []}
+                  title="Distribution by Age"
+                  categoryName="education_level"
+                  colorScheme="blue"
+                  height={220}
+                  filterBy={{}}
+                  isLoading={false}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Food Insecurity Indicator */}
+      <Card id="food_insecurity_section" className="shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-base font-medium">Food Insecurity</CardTitle>
+              <CardDescription>
+                {stats.foodInsecurity.percentage}% of patients report food insecurity
+              </CardDescription>
+            </div>
+            <Checkbox 
+              id="select_food_insecurity"
+              checked={["Food Insecurity_count", "Food Insecurity_percentage", "Food Insecurity_distribution"].every(id => selectedCharts.includes(id))}
+              onCheckedChange={() => {
+                const ids = ["Food Insecurity_count", "Food Insecurity_percentage", "Food Insecurity_distribution"];
+                const allSelected = ids.every(id => selectedCharts.includes(id));
+                
+                if (allSelected) {
+                  setSelectedCharts(prev => prev.filter(id => !ids.includes(id)));
+                } else {
+                  setSelectedCharts(prev => [...new Set([...prev, ...ids])]);
+                }
+              }}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card id="Food Insecurity_count" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Food Insecurity_count")}
+                  onCheckedChange={() => toggleChartSelection("Food Insecurity_count")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Count by Gender</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <CategoricalHrsnChart
+                  data={data?.patients || []}
+                  categoryName="gender"
+                  title="Food Insecurity by Gender"
+                  filterBy={{ symptom: "food_insecurity" }}
+                  colorScheme={colorTheme}
+                  height={220}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card id="Food Insecurity_percentage" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Food Insecurity_percentage")}
+                  onCheckedChange={() => toggleChartSelection("Food Insecurity_percentage")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Percentage by Age</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <HrsnPieChart 
+                  data={data?.patients || []}
+                  fieldName="age_range"
+                  filterField="food_insecurity"
+                  filterValue="Yes"
+                  colorScheme={colorTheme}
+                  height={220}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card id="Food Insecurity_distribution" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Food Insecurity_distribution")}
+                  onCheckedChange={() => toggleChartSelection("Food Insecurity_distribution")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Distribution by Employment</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <CategoricalHrsnChart
+                  patientData={data?.patients || []}
+                  title="Distribution by Employment"
+                  categoryName="employment_status"
+                  colorScheme="blue"
+                  height={220}
+                  filterBy={{}}
+                  isLoading={false}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Transportation Access Indicator */}
+      <Card id="transportation_access_section" className="shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-base font-medium">Transportation Access</CardTitle>
+              <CardDescription>
+                {stats.transportation.percentage}% of patients report limited transportation access
+              </CardDescription>
+            </div>
+            <Checkbox 
+              id="select_transportation"
+              checked={["Transportation Access_count", "Transportation Access_percentage", "Transportation Access_distribution"].every(id => selectedCharts.includes(id))}
+              onCheckedChange={() => {
+                const ids = ["Transportation Access_count", "Transportation Access_percentage", "Transportation Access_distribution"];
+                const allSelected = ids.every(id => selectedCharts.includes(id));
+                
+                if (allSelected) {
+                  setSelectedCharts(prev => prev.filter(id => !ids.includes(id)));
+                } else {
+                  setSelectedCharts(prev => [...new Set([...prev, ...ids])]);
+                }
+              }}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card id="Transportation Access_count" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Transportation Access_count")}
+                  onCheckedChange={() => toggleChartSelection("Transportation Access_count")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Count by Gender</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <CategoricalHrsnChart
+                  data={data?.patients || []}
+                  categoryName="gender"
+                  title="Transportation Access Problems by Gender"
+                  filterBy={{ symptom: "transportation" }}
+                  colorScheme={colorTheme}
+                  height={220}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card id="Transportation Access_percentage" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Transportation Access_percentage")}
+                  onCheckedChange={() => toggleChartSelection("Transportation Access_percentage")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Percentage by Age</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <HrsnPieChart 
+                  data={data?.patients || []}
+                  fieldName="age_range"
+                  filterField="access_to_transportation"
+                  filterValue="No"
+                  colorScheme={colorTheme}
+                  height={220}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card id="Transportation Access_distribution" className="relative shadow-sm h-full">
+              <div className="absolute top-2 right-2 z-10">
+                <Checkbox 
+                  checked={selectedCharts.includes("Transportation Access_distribution")}
+                  onCheckedChange={() => toggleChartSelection("Transportation Access_distribution")}
+                />
+              </div>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm font-medium">Distribution by Gender</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-60">
+                <CategoricalHrsnChart
+                  patientData={data?.patients || []}
+                  title="Distribution by Gender"
+                  categoryName="access_to_transportation"
+                  colorScheme="blue"
+                  height={220}
+                  filterBy={{}}
+                  isLoading={false}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

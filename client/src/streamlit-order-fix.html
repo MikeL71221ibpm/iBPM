@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamlit App Ordering Fix</title>
+    <style>
+        body { font-family: sans-serif; }
+        .stapp > section:nth-child(1) { order: 0; } /* App header */
+        .stapp > section:nth-child(2) { order: 2; } /* File Selection - move to position 2 */
+        .stapp > section:nth-child(3) { order: 1; } /* Search Type - move to position 1 */
+        .stapp > section:nth-child(4) { order: 3; } /* Date Range - leave at position 3 */
+        .stapp > section:nth-child(5) { order: 4; } /* Match Type - leave at position 4 */
+        
+        .stapp {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+    <script>
+        // This script injects the CSS and reorders the Streamlit components
+        document.addEventListener('DOMContentLoaded', function() {
+            const style = document.createElement('style');
+            style.textContent = `
+                /* Reordering the sections */
+                .stapp > section:nth-child(1) { order: 0; } /* App header */
+                .stapp > section:nth-child(2) { order: 2; } /* File Selection - move to position 2 */
+                .stapp > section:nth-child(3) { order: 1; } /* Search Type - move to position 1 */
+                .stapp > section:nth-child(4) { order: 3; } /* Date Range - leave at position 3 */
+                .stapp > section:nth-child(5) { order: 4; } /* Match Type - leave at position 4 */
+                
+                /* Make sure the container uses flex display */
+                .stapp {
+                    display: flex !important;
+                    flex-direction: column !important;
+                }
+                
+                /* Add step numbers to headings */
+                .stapp > section:nth-child(3) .stHeading::before {
+                    content: "Step 1: ";
+                    font-weight: bold;
+                }
+                
+                .stapp > section:nth-child(2) .stHeading::before {
+                    content: "Step 2: ";
+                    font-weight: bold;
+                }
+                
+                .stapp > section:nth-child(4) .stHeading::before {
+                    content: "Step 3: ";
+                    font-weight: bold;
+                }
+            `;
+            
+            document.head.appendChild(style);
+            
+            // Find the Streamlit app container
+            const app = document.querySelector('.stapp');
+            if (app) {
+                app.style.display = 'flex';
+                app.style.flexDirection = 'column';
+                
+                // Add heading changes
+                const sections = app.querySelectorAll('section');
+                if (sections.length >= 5) {
+                    // Change heading text
+                    const heading2 = sections[1].querySelector('.stHeading');
+                    const heading3 = sections[2].querySelector('.stHeading');
+                    const heading4 = sections[3].querySelector('.stHeading');
+                    
+                    if (heading3) heading3.innerText = "Search Type";
+                    if (heading2) heading2.innerText = "File Selection";
+                    if (heading4) heading4.innerText = "Date Range Selection";
+                }
+            }
+        });
+        
+        // Run the script every few seconds to catch any updates
+        setInterval(function() {
+            const app = document.querySelector('.stapp');
+            if (app) {
+                app.style.display = 'flex';
+                app.style.flexDirection = 'column';
+            }
+        }, 1000);
+    </script>
+</head>
+<body>
+    <h1>Streamlit App Ordering Fix</h1>
+    <p>This script should be added to your Streamlit app to reorder the components:</p>
+    <ol>
+        <li>Step 1: Search Type (moved to first position)</li>
+        <li>Step 2: File Selection (moved to second position)</li>
+        <li>Step 3: Date Range Selection (kept in third position)</li>
+    </ol>
+    <p>The script injects CSS that uses flexbox ordering to reorganize the sections without changing the Streamlit code.</p>
+    
+    <h2>Instructions:</h2>
+    <p>Add this HTML content to your Streamlit app using the <code>st.components.v1.html</code> function:</p>
+    <pre><code>
+import streamlit as st
+import streamlit.components.v1 as components
+
+# Add the CSS fix at the top of your app
+components.html("""
+&lt;style&gt;
+    /* Reordering the sections */
+    .stapp > section:nth-child(1) { order: 0; } /* App header */
+    .stapp > section:nth-child(2) { order: 2; } /* File Selection - move to position 2 */
+    .stapp > section:nth-child(3) { order: 1; } /* Search Type - move to position 1 */
+    .stapp > section:nth-child(4) { order: 3; } /* Date Range - leave at position 3 */
+    .stapp > section:nth-child(5) { order: 4; } /* Match Type - leave at position 4 */
+    
+    /* Make sure the container uses flex display */
+    .stapp {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Add step numbers to headings */
+    .stapp > section:nth-child(3) .stHeading::before {
+        content: "Step 1: ";
+        font-weight: bold;
+    }
+    
+    .stapp > section:nth-child(2) .stHeading::before {
+        content: "Step 2: ";
+        font-weight: bold;
+    }
+    
+    .stapp > section:nth-child(4) .stHeading::before {
+        content: "Step 3: ";
+        font-weight: bold;
+    }
+&lt;/style&gt;
+&lt;script&gt;
+    // Make sure the Streamlit app has the right display mode
+    document.addEventListener('DOMContentLoaded', function() {
+        const app = document.querySelector('.stapp');
+        if (app) {
+            app.style.display = 'flex';
+            app.style.flexDirection = 'column';
+        }
+    });
+    
+    // Run the script every few seconds to catch any updates
+    setInterval(function() {
+        const app = document.querySelector('.stapp');
+        if (app) {
+            app.style.display = 'flex';
+            app.style.flexDirection = 'column';
+        }
+    }, 1000);
+&lt;/script&gt;
+""", height=0)
+
+# Rest of your Streamlit app follows...
+    </code></pre>
+</body>
+</html>

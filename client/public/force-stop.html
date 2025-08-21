@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FORCE STOP</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f2f2f2;
+        }
+        .container {
+            text-align: center;
+            padding: 30px;
+            border-radius: 10px;
+            background-color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 {
+            color: #d9534f;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: block;
+            margin: 15px auto;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 300px;
+            color: white;
+        }
+        .red {
+            background-color: #d9534f;
+        }
+        .red:hover {
+            background-color: #c9302c;
+        }
+        .blue {
+            background-color: #428bca;
+        }
+        .blue:hover {
+            background-color: #3071a9;
+        }
+        .green {
+            background-color: #5cb85c;
+        }
+        .green:hover {
+            background-color: #449d44;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .info {
+            background-color: #d9edf7;
+            color: #31708f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EMERGENCY CONTROLS</h1>
+        <button id="killBtn" class="button red">FORCE STOP PROCESSING</button>
+        <button id="completeBtn" class="button green">FORCE COMPLETE</button>
+        <button id="dbResetBtn" class="button blue">DIRECT DATABASE RESET</button>
+        <div id="message" class="message"></div>
+        <div style="margin-top: 30px;">
+            <a href="/">Return to application</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('killBtn').addEventListener('click', async () => {
+            showMessage('Attempting to stop all processing...', 'info');
+            
+            try {
+                const response = await fetch('/api/force-stop-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store'
+                    },
+                    body: JSON.stringify({ 
+                        taskType: 'extract_symptoms',
+                        forceKill: true,
+                        timestamp: Date.now()
+                    })
+                });
+                
+                if (response.ok) {
+                    showMessage('Processing stopped successfully. Return to application.', 'success');
+                } else {
+                    const data = await response.json();
+                    showMessage(`Error: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        document.getElementById('completeBtn').addEventListener('click', async () => {
+            showMessage('Forcing process to complete...', 'info');
+            
+            try {
+                const response = await fetch('/api/force-complete-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store'
+                    },
+                    body: JSON.stringify({ 
+                        taskType: 'extract_symptoms',
+                        timestamp: Date.now()
+                    })
+                });
+                
+                if (response.ok) {
+                    showMessage('Process marked as complete. Return to application.', 'success');
+                } else {
+                    const data = await response.json();
+                    showMessage(`Error: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        document.getElementById('dbResetBtn').addEventListener('click', async () => {
+            if (confirm('WARNING: This will directly modify the database. Are you sure?')) {
+                showMessage('Performing direct database reset...', 'info');
+                
+                try {
+                    const response = await fetch('/api/direct-db-reset', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache, no-store'
+                        },
+                        body: JSON.stringify({
+                            userId: 2,
+                            taskType: 'extract_symptoms',
+                            force: true,
+                            timestamp: Date.now()
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        showMessage('Database reset successful. Please log out and back in.', 'success');
+                    } else {
+                        const data = await response.json();
+                        showMessage(`Error: ${data.error || 'Unknown error'}`, 'error');
+                    }
+                } catch (error) {
+                    showMessage(`Error: ${error.message}`, 'error');
+                }
+            }
+        });
+
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = `message ${type}`;
+            message.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

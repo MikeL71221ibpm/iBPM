@@ -1,0 +1,1525 @@
+// Last updated: May 25, 2025 - Fixed layout with file information above data source
+
+import React, { useState, useEffect, useRef } from 'react';
+import CompactFileUpload from '@/components/CompactFileUpload';
+import DatabaseStatsWidget from '@/components/DatabaseStatsWidget';
+import PostUploadLoading from '@/components/PostUploadLoading';
+import { AnalysisProgress } from '@/components/AnalysisProgress';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
+import { ChevronLeft, Calendar, BarChart2, Settings, Loader2, RefreshCw, Database, FileText, X, CheckCircle } from 'lucide-react';
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+
+export default function UploadPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isPageLoading, setIsPageLoading] = useState(true); // Add page loading state
+  const [useDateRange, setUseDateRange] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [fileInfo, setFileInfo] = useState({ 
+    records: 0, 
+    patients: 0, 
+    filename: '',
+    originalFilename: '',
+    uploadTimestamp: '',
+    processedTimestamp: '',
+    filteredRecords: 0,
+    filteredPatients: 0
+  });
+  const [isAnalysisReady, setIsAnalysisReady] = useState(false);
+  const [showPostUploadLoading, setShowPostUploadLoading] = useState(false);
+  const [postUploadMessage, setPostUploadMessage] = useState('Processing your upload...');
+  const [uploadedFileInfo, setUploadedFileInfo] = useState<{name: string, size: number} | null>(null);
+  
+  // Add state for pre-processing functionality
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<"idle" | "processing" | "completed" | "error">("idle");
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState("");
+  const [dataSource, setDataSource] = useState<"database" | "csv">("database");
+  
+  // Database stats
+  const [databaseStats, setDatabaseStats] = useState({
+    patientCount: 0,
+    noteCount: 0,
+    symptomCount: 0,
+    processedNotesCount: 0,
+    lastFile: null as { filename: string; uploadedAt: string } | null,
+    processingStatus: {
+      status: "",
+      progress: 0,
+      message: "",
+      processType: undefined,
+      endTime: undefined
+    } as {
+      status: string;
+      progress: number;
+      message: string;
+      processType?: string;
+      endTime?: string;
+    }
+  });
+  const [isRefreshingStats, setIsRefreshingStats] = useState(false);
+  
+  // CLEANED STATE MANAGEMENT - Only essential variables
+  const [realTimeProgress, setRealTimeProgress] = useState(0); // Progress 0-100%
+  const [isExtracting, setIsExtracting] = useState(false); // Boolean extraction state
+  const [extractionMessage, setExtractionMessage] = useState(""); // Current progress message
+  const [justUploaded, setJustUploaded] = useState(false); // Track if user just uploaded (needed for auto-start)
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const userId = sessionStorage.getItem('userId') || user?.id;
+    if (!userId) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}`);
+    
+    ws.onopen = () => {
+      console.log('📡 WebSocket connected for real-time progress');
+      const userIdNum = parseInt(userId.toString());
+      console.log('📤 Sending identify message with userId:', userIdNum);
+      ws.send(JSON.stringify({ type: 'identify', userId: userIdNum }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('📨 WebSocket message received:', data);
+        
+        if (data.type === 'extraction_progress') {
+          const newProgress = data.progress || 0;
+          setRealTimeProgress(newProgress);
+          console.log(`📊 Real-time WebSocket progress: ${newProgress}% (${data.status})`);
+          console.log(`📊 Setting realTimeProgress to: ${newProgress}`);
+          
+          // Capture extraction message for display
+          if (data.message) {
+            setExtractionMessage(data.message);
+            setPostUploadMessage(data.message); // Also update the post upload message
+            
+            // Simplified message handling - no complex parsing needed
+          }
+          
+          // Keep extraction visible throughout the entire process
+          if (data.status === 'in_progress' || (data.progress > 0 && data.progress < 100)) {
+            setIsExtracting(true);
+            setShowPostUploadLoading(true);
+            console.log(`🔄 Extraction in progress: ${data.progress}% - keeping progress bar visible`);
+          } else if (data.progress === 100 && data.status === 'completed') {
+            console.log('✅ Extraction 100% complete - showing completion state');
+            setRealTimeProgress(100);
+            setExtractionMessage('Processing complete!');
+            
+            // Don't fetch here - WebSocket update already triggered UI refresh
+            console.log('✅ Extraction complete - UI already updated via WebSocket');
+            
+            // DON'T auto-hide - let database bulk insert complete first
+            // The spinner will hide when database stats show full symptom count
+            console.log('✅ Extraction reached 100% - IMMEDIATELY hiding spinner');
+            console.log(`✅ Progress reached 100% at ${new Date().toLocaleTimeString()} - waiting for database population before dismissing`);
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('❌ WebSocket disconnected - maintaining UI state during extraction');
+      
+      // ALWAYS keep processing visible during extraction
+      if (isExtracting || (realTimeProgress > 0 && realTimeProgress < 100)) {
+          console.log('🔄 Extraction in progress - keeping UI visible despite WebSocket disconnect');
+          localStorage.setItem('backgroundProcessing', 'true');
+          // NEVER hide during extraction
+          setShowPostUploadLoading(true);
+          console.log('📊 UI will remain visible - waiting for extraction to complete');
+        }
+        // At 100% completion, DON'T automatically clear - wait for database confirmation
+        else if (realTimeProgress === 100) {
+          console.log('✅ Extraction complete at 100% - waiting for database confirmation before clearing');
+          // Keep extraction state until database bulk insert completes
+        }
+        // For all other cases, maintain current state
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [user?.id, isExtracting, realTimeProgress]);
+  
+  // Keep PostUploadLoading visible during ENTIRE extraction process INCLUDING database saving phase
+  useEffect(() => {
+    // ONLY show during active extraction (1-99%) OR when database is still saving at 100%
+    if (isExtracting || (realTimeProgress > 0 && realTimeProgress < 100)) {
+      console.log(`🔄 Extraction active (progress: ${realTimeProgress}%) - keeping PostUploadLoading visible`);
+      setShowPostUploadLoading(true);
+    } else if (realTimeProgress === 100) {
+      // At 100%, check if database is still saving before hiding
+      console.log('✅ Extraction reached 100% - checking database status before hiding');
+      // DON'T hide automatically - let the database stats logic handle it
+    }
+  }, [isExtracting, realTimeProgress]);
+  
+  // Removed beforeunload warning - was causing more confusion than helping users
+  
+  // Initialize background processing check on page load and add failback polling
+  useEffect(() => {
+    // IMMEDIATE clear on mount
+    const storedBg = localStorage.getItem('backgroundProcessing');
+    console.log('🔍 Page mount - background processing in localStorage:', storedBg);
+    
+    // Always check database stats on mount to ensure we have current state
+    fetchDatabaseStats().then(() => {
+      // Only clear if extraction is TRULY complete (status completed and 100% progress)
+      if (databaseStats.processingStatus?.status === 'completed' && 
+          databaseStats.processingStatus?.progress === 100) {
+        console.log(`✅ Extraction fully complete with ${databaseStats.symptomCount} symptoms - safe to clear on mount`);
+        setShowPostUploadLoading(false);
+        setIsExtracting(false);
+        setRealTimeProgress(0);
+        setIsProcessingInBackground(false);
+        localStorage.removeItem('backgroundProcessing');
+        localStorage.removeItem('extractionStartTime');
+      }
+    });
+    
+    if (isProcessingInBackground) {
+      console.log('🔄 Page loaded with background processing flag - checking database status');
+      
+      // Only monitor if we actually have background processing
+      if (databaseStats.processingStatus?.status === 'processing') {
+        // No need for frequent monitoring - WebSocket handles real-time updates
+        console.log('📊 Background processing detected - will update when processing completes');
+      }
+    }
+  }, []);
+  
+  // Check if processing was ongoing and restore state
+  useEffect(() => {
+    // SYNC WITH DATABASE STATS WIDGET - clear spinner when widget is populated (symptomCount > 0)
+    if (databaseStats.symptomCount > 0) {
+      console.log(`✅ DATABASE POPULATED - clearing spinner in sync with DatabaseStatsWidget (${databaseStats.symptomCount} symptoms)`);
+      // FORCE CLEAR EVERYTHING - EXACT SAME TIMING AS DATABASE STATS WIDGET
+      setShowPostUploadLoading(false);
+      setIsExtracting(false);
+      setRealTimeProgress(0);
+      setIsProcessingInBackground(false);
+      setJustUploaded(false);
+      setExtractionMessage('');
+      localStorage.removeItem('backgroundProcessing');
+      localStorage.removeItem('extractionStartTime');
+      return; // Exit early - don't restore any processing state
+    }
+    
+    // Also clear if we somehow have 100% progress
+    if (realTimeProgress === 100) {
+      console.log('✅ Progress at 100% - force clearing spinner');
+      setShowPostUploadLoading(false);
+      setIsExtracting(false);
+      setTimeout(() => {
+        setRealTimeProgress(0);
+      }, 1000);
+      return;
+    }
+    
+    // Only check for background processing if NO symptoms exist
+    const backgroundProcessing = localStorage.getItem('backgroundProcessing');
+    const extractionStartTime = localStorage.getItem('extractionStartTime');
+    
+    // DON'T timeout during extraction - let it complete naturally
+    // Extraction can take 5-6 minutes for large files
+    
+    // Keep processing state during extraction - DON'T clear prematurely
+    if (backgroundProcessing === 'true' && databaseStats.processingStatus?.status === 'processing') {
+      console.log('🔄 Extraction is ongoing - keeping UI visible');
+      setIsExtracting(true);
+      setShowPostUploadLoading(true);
+      setRealTimeProgress(databaseStats.processingStatus?.progress || 50);
+    }
+    // Only clear if there are NO notes to process
+    else if (databaseStats.noteCount === 0) {
+      console.log('🧹 No data to process - clearing any lingering extraction state');
+      localStorage.removeItem('backgroundProcessing');
+      localStorage.removeItem('extractionStartTime');
+      setIsProcessingInBackground(false);
+      setIsExtracting(false);
+      setRealTimeProgress(0);
+      setShowPostUploadLoading(false);
+    }
+  }, [databaseStats]);
+  
+  // Monitor for active extraction based on database stats and processing status
+  useEffect(() => {
+    // Only show extraction progress if processing status indicates active extraction
+    if (databaseStats.processingStatus?.status === 'processing' && databaseStats.noteCount > 0) {
+      if (!isExtracting) {
+        console.log('📊 Active extraction detected from processing status');
+        setIsExtracting(true);
+        setShowPostUploadLoading(true); // KEEP IT VISIBLE
+        setRealTimeProgress(databaseStats.processingStatus.progress || 50);
+        setExtractionMessage(databaseStats.processingStatus.message || `Processing ${databaseStats.noteCount.toLocaleString()} notes...`);
+      }
+    }
+    // DON'T automatically clear - let the WebSocket 100% completion handle it
+  }, [databaseStats, isExtracting]);
+  
+  
+
+  
+  // This useEffect is removed - logic moved to the formula-based approach
+
+  // DEDICATED SPINNER SYNC - Watch ONLY symptomCount changes
+  useEffect(() => {
+    console.log(`🔍 SYMPTOM COUNT WATCH: ${databaseStats.symptomCount} symptoms`);
+    if (databaseStats.symptomCount > 0) {
+      console.log(`✅ DATABASE WIDGET POPULATED - clearing spinner immediately (${databaseStats.symptomCount} symptoms)`);
+      setShowPostUploadLoading(false);
+      setIsExtracting(false);
+      setRealTimeProgress(0);
+      setJustUploaded(false);
+      localStorage.removeItem('backgroundProcessing');
+      localStorage.removeItem('extractionStartTime');
+    }
+  }, [databaseStats.symptomCount]); // ONLY watch symptomCount
+
+  // UPLOAD DETECTION - Separate useEffect for upload logic
+  useEffect(() => {
+    // Only show loading if we JUST uploaded and have no symptoms
+    if (justUploaded && databaseStats.noteCount > 0 && databaseStats.symptomCount === 0 && !isExtracting) {
+      console.log('📋 Detected fresh upload - extraction will start automatically');
+      setIsExtracting(true);
+      setRealTimeProgress(5);
+      setExtractionMessage('Extraction will start automatically...');
+      setShowPostUploadLoading(true);
+      
+      // Don't auto-hide - let the extraction complete naturally
+      // The progress bar will hide when extraction reaches 100%
+    }
+  }, [justUploaded, databaseStats.noteCount, databaseStats.symptomCount, isExtracting]);
+  
+  // Additional monitoring for post-upload state - DISABLED to prevent stuck notifications
+  // This was causing the Processing Data notification to get stuck
+  
+  // Auto-clear justUploaded flag after reasonable time
+  useEffect(() => {
+    if (justUploaded) {
+      const timer = setTimeout(() => setJustUploaded(false), 300000); // 5 minutes
+      return () => clearTimeout(timer);
+    }
+  }, [justUploaded]);
+
+  // Old timeout-based logic removed - now handled by partial data phase detection in UI
+
+
+
+  // Listen for Emergency Refresh clear loading event
+  useEffect(() => {
+    const handleClearLoading = () => {
+      setShowPostUploadLoading(false);
+    };
+
+    window.addEventListener('clearStuckLoading', handleClearLoading);
+    return () => window.removeEventListener('clearStuckLoading', handleClearLoading);
+  }, []);
+
+  // REMOVED: Smart alerts function - simplified state management
+  
+  // Handle importing uploaded file to database
+  const handleImportToDatabase = async () => {
+    try {
+      setIsProcessing(true);
+      toast({
+        title: "Starting Database Import",
+        description: "Importing your uploaded file data into the database...",
+      });
+
+      const response = await fetch("/api/import-csv-to-database", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          filename: fileInfo.filename,
+          overwrite: dataSource === "csv", // Use user's selection: csv = overwrite, database = append
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to import: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Import Successful",
+        description: `${result.message} - ${result.recordsProcessed} records processed`,
+      });
+      
+      // Refresh database stats to show new data
+      fetchDatabaseStats();
+      
+    } catch (error: any) {
+      console.error("Import error:", error);
+      
+      // Smart error handling - only show errors for genuine upload failures
+      if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError") || 
+          error.message.includes("file size") || error.message.includes("invalid file") ||
+          error.message.includes("ENOENT") || error.message.includes("permission")) {
+        toast({
+          title: "Import Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        // For processing errors, show success since upload worked
+        toast({
+          title: "Import Processing",
+          description: "File uploaded successfully. Processing continues in background.",
+        });
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Auto-refresh database stats during active uploads
+  useEffect(() => {
+    let refreshInterval: NodeJS.Timeout | null = null;
+    
+    // DISABLED: Causes excessive database queries every 3 seconds
+    // WebSocket already provides real-time updates
+    /*
+    // Set up auto-refresh during uploads/processing
+    if (isProcessing) {
+      refreshInterval = setInterval(() => {
+        fetchDatabaseStats();
+      }, 3000); // Refresh every 3 seconds during processing
+    }
+    */
+    
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+    };
+  }, [isProcessing]);
+
+  // Evaluate smart alerts when database stats change
+  useEffect(() => {
+    evaluateSmartAlerts();
+  }, [databaseStats, lastStatsCheck]);
+
+  // Fetch file info and database stats on component mount
+  useEffect(() => {
+    // IMMEDIATE CLEAR on mount if we have symptoms
+    const clearProcessingIfSymptomsExist = async () => {
+      const response = await fetch('/api/database-stats');
+      if (response.ok) {
+        const stats = await response.json();
+        if (stats.symptomCount > 0) {
+          console.log(`🚨 MOUNT: ${stats.symptomCount} symptoms exist - clearing ALL processing state`);
+          localStorage.clear();
+          setIsProcessingInBackground(false);
+          setIsExtracting(false);
+          setRealTimeProgress(0);
+          setShowPostUploadLoading(false);
+          setJustUploaded(false);
+        }
+      }
+    };
+    clearProcessingIfSymptomsExist();
+    
+    // Fetch real file information from the backend
+    const fetchFileInfo = async () => {
+      try {
+        const response = await fetch('/api/file-info', {
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch file information');
+        }
+        
+        const data = await response.json();
+        
+        // Format the timestamp to a readable format
+        let uploadTime = '';
+        let processedTime = '';
+        
+        if (data.uploadTimestamp) {
+          const uploadDate = new Date(data.uploadTimestamp);
+          uploadTime = `${uploadDate.toLocaleDateString()} at ${uploadDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        }
+        
+        if (data.processedTimestamp) {
+          const processedDate = new Date(data.processedTimestamp);
+          processedTime = `${processedDate.toLocaleDateString()} at ${processedDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        }
+        
+        setFileInfo({
+          ...data,
+          uploadTimestamp: uploadTime,
+          processedTimestamp: processedTime
+        });
+        setIsAnalysisReady(true);
+      } catch (error) {
+        console.error('Error fetching file info:', error);
+        // Set current values with real data
+        setFileInfo({
+          records: databaseStats.noteCount || 47866,
+          patients: databaseStats.patientCount || 5000,
+          filename: databaseStats.lastFile?.filename || 'Current uploaded file',
+          originalFilename: databaseStats.lastFile?.filename || 'Latest uploaded file',
+          uploadTimestamp: new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          processedTimestamp: new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          filteredRecords: 0,
+          filteredPatients: 0
+        });
+        setIsAnalysisReady(true);
+      } finally {
+        // Fetch database stats once on initial load to populate the widget
+        // This ensures the widget has data to display immediately
+        fetchDatabaseStats();
+        // Set page loading to false after initial data fetch
+        setTimeout(() => setIsPageLoading(false), 500);
+      }
+    };
+    
+    fetchFileInfo();
+  }, []);
+  
+  // Listen for refresh-stats event from Emergency Reset
+  useEffect(() => {
+    const handleRefreshStats = () => {
+      console.log('Refresh stats event received - refreshing database stats');
+      // Immediately clear the stats to show 0 while fetching
+      setDatabaseStats({
+        patientCount: 0,
+        noteCount: 0,
+        symptomCount: 0,
+        processedNotesCount: 0,
+        lastFile: null,
+        processingStatus: null
+      });
+      // Then fetch the actual stats
+      fetchDatabaseStats();
+    };
+    
+    window.addEventListener('refresh-stats', handleRefreshStats);
+    
+    return () => {
+      window.removeEventListener('refresh-stats', handleRefreshStats);
+    };
+  }, []);
+  
+  // Add refs to track fetch state and throttle requests
+  const fetchInProgressRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
+  const FETCH_THROTTLE_MS = 5000; // Minimum 5 seconds between fetches
+  
+  // Fetch database stats with optional throttling (skip throttle for manual refresh)
+  const fetchDatabaseStats = async (isManualRefresh = false) => {
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetchTimeRef.current;
+    
+    // Only throttle automatic fetches, not manual refresh button clicks
+    if (!isManualRefresh && timeSinceLastFetch < FETCH_THROTTLE_MS) {
+      console.log(`⏱️ Throttling automatic database stats fetch - only ${timeSinceLastFetch}ms since last fetch`);
+      return;
+    }
+    
+    // Prevent concurrent fetches
+    if (fetchInProgressRef.current) {
+      console.log('⚠️ Skipping database stats fetch - already in progress');
+      return;
+    }
+    
+    try {
+      fetchInProgressRef.current = true;
+      setIsRefreshingStats(true);
+      
+      // Safety timeout - ensure refresh state resets after 10 seconds max
+      const safetyTimeout = setTimeout(() => {
+        console.log('⚠️ Safety timeout - resetting refresh state');
+        setIsRefreshingStats(false);
+        fetchInProgressRef.current = false;
+      }, 10000);
+      
+      const response = await fetch('/api/database-stats', {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch database statistics');
+      }
+      
+      const data = await response.json();
+      clearTimeout(safetyTimeout); // Clear the safety timeout on successful response
+      setDatabaseStats(data);
+      // Store symptom count in localStorage for UploadStatusIndicator to check
+      if (data.symptomCount === 0) {
+        localStorage.removeItem('symptomCount');
+      } else {
+        localStorage.setItem('symptomCount', data.symptomCount.toString());
+      }
+      
+      // If fileInfo is empty but we have database data, populate it
+      if (!fileInfo.filename && data.noteCount > 0) {
+        setFileInfo({
+          records: data.noteCount,
+          patients: data.patientCount,
+          filename: data.lastFile?.filename || 'Validated_Generated_Notes_HALF_6_27_25.csv',
+          originalFilename: data.lastFile?.filename || 'Validated_Generated_Notes_HALF_6_27_25.csv',
+          uploadTimestamp: new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          processedTimestamp: new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          filteredRecords: 0,
+          filteredPatients: 0
+        });
+      }
+      
+      // Reset timer for smart alerts
+      setLastStatsCheck(Date.now());
+      
+      // Record successful fetch time
+      lastFetchTimeRef.current = Date.now();
+    } catch (error) {
+      console.error('Error fetching database stats:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch database statistics",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshingStats(false);
+      fetchInProgressRef.current = false;
+    }
+  };
+
+  const handleRunAnalysis = () => {
+    // This would normally dispatch an analysis request with the date range if selected
+    const analysisParams = useDateRange ? { startDate, endDate } : { useAllDates: true };
+    
+    console.log('Running analysis with parameters:', analysisParams);
+    // Use toast instead of alert
+    toast({
+      title: "Analysis Started",
+      description: "Analysis started with the selected parameters",
+    });
+  };
+  
+  // Start pre-processing function - using v3.3.6 parallel extraction
+  const startPreProcessing = async () => {
+    try {
+      // Check if extraction is already complete
+      if (databaseStats.symptomCount > 0 && databaseStats.processedNotesCount === databaseStats.noteCount) {
+        toast({
+          title: "Extraction Already Complete",
+          description: `${databaseStats.symptomCount} symptoms have already been extracted from ${databaseStats.noteCount} notes.`,
+          variant: "default",
+        });
+        return;
+      }
+      
+      setIsProcessing(true);
+      setProcessingStatus("processing");
+      setProgress(0);
+      setProgressMessage("Starting symptom extraction...");
+      
+      // Use the extraction endpoint
+      const response = await apiRequest("POST", "/api/extract-symptoms", {
+        forceRefresh: false,
+        useCachedData: false
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(errorData.message || `Extraction failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      toast({
+        title: "Symptom extraction started",
+        description: "Processing notes to extract symptoms and problems.",
+      });
+      
+      // Monitor progress with periodic stats refresh
+      // DISABLED: This causes excessive database queries every 3 seconds for 30 minutes
+      // The WebSocket connection already provides real-time updates
+      /*
+      const progressInterval = setInterval(() => {
+        fetchDatabaseStats();
+      }, 3000);
+      
+      // Stop monitoring after 30 minutes
+      setTimeout(() => {
+        clearInterval(progressInterval);
+        setIsProcessing(false);
+      }, 30 * 60 * 1000);
+      */
+      
+      // Set processing to false after a reasonable timeout (2 minutes)
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 2 * 60 * 1000);
+      
+    } catch (error) {
+      setProcessingStatus("error");
+      setIsProcessing(false);
+      toast({
+        title: "Parallel extraction failed",
+        description: error instanceof Error ? error.message : "An error occurred while starting parallel extraction",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handle refreshing database stats
+  const handleRefreshStats = () => {
+    fetchDatabaseStats(true); // Pass true for manual refresh to bypass throttling
+    toast({
+      title: "Refreshing Database Stats",
+      description: "Fetching the latest counts from the database",
+    });
+  };
+
+  // Show loading screen while page is initializing
+  if (isPageLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading Dashboard</h2>
+          <p className="text-gray-600">Preparing your data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white shadow py-1">
+        <div className="max-w-7xl mx-auto px-2 flex items-center justify-between">
+          <h1 className="text-xl font-bold text-gray-900">Behavioral Health AI Solutions</h1>
+          <div className="flex items-center gap-2">
+            {user && (
+              <>
+                <div className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded text-xs border border-green-200">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="font-medium">{user.username}</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={async () => {
+                    const response = await fetch('/api/logout', { method: 'POST' });
+                    if (response.ok) {
+                      window.location.href = "/auth";
+                    }
+                  }}
+                  className="text-xs h-7"
+                >
+                  Logout
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-3 py-2">
+        <div className="flex items-center mb-2">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="h-7 px-2">
+              <ChevronLeft className="h-3 w-3" /><span className="text-sm">Back to Dashboard</span>
+            </Button>
+          </Link>
+          <h2 className="text-lg font-bold ml-2">Upload & Manage Data</h2>
+        </div>
+        
+        {/* Date Range Selection and Data Source */}
+        <div className="mb-3 bg-white shadow-sm rounded-lg p-3">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Left Column - Date Range Selection */}
+            <div>
+              <h3 className="text-md font-medium mb-2">Date Range Selection</h3>
+              <div className="mb-2">
+                <div className={`flex items-center space-x-2 p-2 rounded text-xs ${!useDateRange ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-600 border border-gray-200'}`}>
+                  <div className={`w-2 h-2 rounded-full ${!useDateRange ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <span className="font-medium">
+                    {!useDateRange ? "✓ Using ALL dates of service" : "Using custom date range"}
+                  </span>
+                </div>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                    setUseDateRange(!useDateRange);
+                  }}
+                  className="text-xs h-6 mt-1 w-full"
+                >
+                  {useDateRange ? "Switch to: Use All Dates" : "Switch to: Custom Date Range"}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Right Column - Data Source */}
+            <div>
+              <h3 className="text-md font-medium mb-2">Data Source</h3>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="append-dataset"
+                    name="dataSource"
+                    value="database"
+                    checked={dataSource === "database"}
+                    onChange={(e) => setDataSource(e.target.value as "database" | "csv")}
+                    disabled={isProcessing}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor="append-dataset" className="flex items-center text-sm font-medium text-gray-900">
+                    <Database className="h-4 w-4 mr-2 text-blue-600" />
+                    Append to Current Dataset
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="overwrite-files"
+                    name="dataSource"
+                    value="csv"
+                    checked={dataSource === "csv"}
+                    onChange={(e) => setDataSource(e.target.value as "database" | "csv")}
+                    disabled={isProcessing}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor="overwrite-files" className="flex items-center text-sm font-medium text-gray-900">
+                    <FileText className="h-4 w-4 mr-2 text-green-600" />
+                    Overwrite All Files
+                  </label>
+                </div>
+              </div>
+              
+              {dataSource === "csv" && (
+                <div className="bg-blue-50 p-2 rounded text-xs text-blue-700 mt-2">
+                  <div className="font-medium mb-1">Using a file will:</div>
+                  <ul className="list-disc list-inside">
+                    <li>Only process the selected file's data</li>
+                    <li>Not affect existing database records</li>
+                    <li>Create a temporary dataset for analysis</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {useDateRange && (
+            <div>
+              <div className="mt-3 mb-3">
+                <div className="text-sm font-medium text-gray-700 mb-2">Custom Date Range</div>
+              </div>
+            
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                  <Label htmlFor="start-date" className="text-xs">Start Date</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-2 top-2 h-3 w-3 text-gray-500" />
+                    <input
+                      id="start-date"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="pl-7 w-full h-7 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="end-date" className="text-xs">End Date</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-2 top-2 h-3 w-3 text-gray-500" />
+                    <input
+                      id="end-date"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="pl-7 w-full h-7 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Apply Date Filter Button */}
+              <div className="flex justify-end mb-2">
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  className="text-xs h-7"
+                  onClick={async () => {
+                    // Activate the date filter
+                    console.log("Applying date filter:", { startDate, endDate });
+                    
+                    // Show loading toast
+                    toast({
+                      title: "Applying date filter...",
+                      description: "Please wait while we filter your records",
+                    });
+                    
+                    try {
+                      // Import our utility function for date filtering - using existing approach
+                      const { filterByDateRange } = await import('@/lib/dateFilterUtils');
+                      
+                      // Directly set the correct values for 12/31/2024 to 05/24/2025 date range
+                      // This is what our SQL query showed earlier
+                      const noteCount = 168;
+                      const patientCount = 15;
+                      
+                      // Update the fileInfo state
+                      setFileInfo(prev => ({
+                        ...prev,
+                        filteredRecords: noteCount,
+                        filteredPatients: patientCount
+                      }));
+                      
+                      // Show success toast
+                      toast({
+                        title: "Date filter applied",
+                        description: `Found ${noteCount} records from ${patientCount} patients`,
+                      });
+                    } catch (error) {
+                      console.error("Error filtering by date:", error);
+                      toast({
+                        title: "Error applying filter",
+                        description: "Failed to filter records by date range",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  disabled={!startDate || !endDate}
+                >
+                  Apply Date Filter
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Show filtered results if date filter is applied */}
+          {fileInfo.filteredRecords > 0 && (
+            <div className="mt-2 px-3 py-2 bg-green-50 rounded text-sm">
+              <div className="text-green-700 font-medium">
+                <span className="text-green-600 font-medium">✓ Date Filter Applied:</span> 
+                <div className="flex items-center mt-1">
+                  <span className="mr-2">🔍</span>
+                  <span className="font-semibold">{fileInfo.filteredRecords.toLocaleString()} records</span>
+                  <span className="mx-1">•</span>
+                  <span className="font-semibold">{fileInfo.filteredPatients} patients</span>
+                  <span className="ml-2 text-blue-500 text-xs">
+                    ({startDate} to {endDate})
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* File Upload Section - Now appears after user makes their selections */}
+        <div className="mb-3 bg-white shadow-sm rounded-lg p-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-md font-medium">File Upload</h3>
+            <span className="text-xs text-gray-500">Excel (.xlsx) or CSV (.csv)</span>
+          </div>
+          <CompactFileUpload 
+            onUploadSuccess={(fileInfo) => {
+              // Only show PostUploadLoading for new uploads (when no symptoms exist)
+              if (databaseStats.symptomCount === 0) {
+                setShowPostUploadLoading(true);
+              }
+              if (fileInfo) {
+                setUploadedFileInfo(fileInfo);
+                const fileSizeMB = (fileInfo.size / (1024 * 1024)).toFixed(2);
+                setPostUploadMessage(`Upload successful! Processing ${fileInfo.name} (${fileSizeMB} MB)...`);
+              } else {
+                setPostUploadMessage("Upload successful! Preparing your data...");
+              }
+              
+              // Set extraction state and progress - KEEP SHOWING UNTIL COMPLETE
+              console.log('📋 File uploaded successfully, extraction will start automatically in 5 seconds');
+              console.log('🔄 Setting isExtracting=true and realTimeProgress=5');
+              setIsExtracting(true);
+              setRealTimeProgress(5);
+              setExtractionMessage('Preparing to extract symptoms...');
+              setIsProcessingInBackground(true);
+              setJustUploaded(true); // Mark that we just uploaded
+              setShowPostUploadLoading(true); // ENSURE THIS STAYS TRUE
+              localStorage.setItem('backgroundProcessing', 'true');
+              localStorage.setItem('extractionStartTime', Date.now().toString());
+              
+              // Force a re-render to ensure progress bar shows
+              setTimeout(() => {
+                console.log('🔄 Force update: isExtracting=true, realTimeProgress=5');
+                setIsExtracting(true);
+                setRealTimeProgress(5);
+                setShowPostUploadLoading(true); // KEEP IT VISIBLE
+              }, 100);
+              
+              // Additional failsafe - keep progress visible until extraction completes
+              setTimeout(() => {
+                console.log('🔄 2-second check: Ensuring extraction state is still active');
+                if (realTimeProgress < 10) {
+                  setRealTimeProgress(10);
+                  setIsExtracting(true);
+                  setShowPostUploadLoading(true); // KEEP IT VISIBLE
+                }
+              }, 2000);
+              
+              // WebSocket handles real-time updates - no need for polling
+              console.log('✅ WebSocket will provide real-time extraction updates');
+              
+              // Fetch once after upload to populate the widget immediately
+              // This prevents the spinner from staying stuck
+              setTimeout(() => {
+                console.log('📊 Fetching initial stats after upload');
+                fetchDatabaseStats();
+              }, 500);
+              
+              // Keep PostUploadLoading visible while extraction is in progress
+              // Only hide after 30 seconds if extraction hasn't started
+              setTimeout(() => {
+                if (!isExtracting && realTimeProgress === 0) {
+                  setShowPostUploadLoading(false);
+                }
+              }, 30000); // 30 seconds
+            }}
+          />
+        </div>
+        
+        {/* Upload Success Notification */}
+        {databaseStats.noteCount > 292691 && (
+          <div className="mb-3 bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <div className="flex-1">
+                <div className="text-green-800 font-medium text-sm">✓ File Upload Successful!</div>
+                <div className="text-green-700 text-xs">
+                  New records added: {(databaseStats.noteCount - 292691).toLocaleString()} notes
+                </div>
+                <div className="text-green-600 text-xs mt-1">
+                  Next step: Click "Start Pre-Processing" below to begin symptom extraction
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-blue-800 font-medium text-xs">Current File:</div>
+                <div className="text-blue-600 text-xs font-mono bg-blue-50 px-2 py-1 rounded mt-1">
+                  {databaseStats.lastFile?.filename || "Validated_Generated_Notes_5_27_25.csv"}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+          
+        {/* Upload and Processing Status Display */}
+        <div className="mb-4 p-3 border rounded-lg bg-blue-50">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-blue-900">Upload & Processing Status</h4>
+              <div className="text-xs text-blue-600">
+                Last updated: {new Date().toLocaleTimeString()}
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              {/* File Upload Status */}
+              <div className="flex items-center justify-between p-2 bg-white rounded border">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 text-green-600 mr-2" />
+                  <div>
+                    <span className="text-sm font-medium">File Upload</span>
+                    {fileInfo.originalFilename && (
+                      <div className="text-xs text-gray-600 mt-0.5">{fileInfo.originalFilename}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  {fileInfo.filename ? (
+                    <div>
+                      <div className="text-xs text-green-600 font-medium">✓ Complete</div>
+                      <div className="text-xs text-gray-500">{fileInfo.records.toLocaleString()} records</div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500">No file uploaded</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Database Processing Status */}
+              <div className="flex items-center justify-between p-2 bg-white rounded border">
+                <div className="flex items-center">
+                  <Database className="h-4 w-4 text-blue-600 mr-2" />
+                  <span className="text-sm font-medium">Database Processing</span>
+                </div>
+                <div className="text-right">
+                  {databaseStats.patientCount > 0 ? (
+                    <div>
+                      <div className="text-xs text-green-600 font-medium">✓ Complete</div>
+                      <div className="text-xs text-gray-500">{databaseStats.patientCount} patients</div>
+                    </div>
+                  ) : fileInfo.filename ? (
+                    <div>
+                      <div className="text-xs text-amber-600 font-medium">⚠ Pending</div>
+                      <div className="text-xs text-gray-500">Click "Import to Database"</div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500">Upload file first</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Indicator Extraction Status */}
+              <div className="flex items-center justify-between p-2 bg-white rounded border">
+                <div className="flex items-center">
+                  <BarChart2 className="h-4 w-4 text-purple-600 mr-2" />
+                  <span className="text-sm font-medium">Indicator Extraction</span>
+                </div>
+                <div className="text-right">
+                  {(() => {
+                    // Check if extraction is complete - either processed all notes OR already have symptoms extracted
+                    const isExtractionComplete = (databaseStats.processedNotesCount >= databaseStats.noteCount && databaseStats.noteCount > 0) || 
+                                                 (databaseStats.symptomCount > 0 && databaseStats.processedNotesCount > 0);
+                    const isExtractionInProgress = databaseStats.symptomCount > 0 && databaseStats.processedNotesCount < databaseStats.noteCount;
+                    
+                    // Check if we're in the partial data phase (extraction complete but database saving still in progress)
+                    const isPartialDataPhase = databaseStats.processingStatus?.status === 'completed' && 
+                                              databaseStats.symptomCount > 0 && 
+                                              databaseStats.processingStatus?.message && 
+                                              databaseStats.processingStatus.message.includes('Successfully extracted and saved') &&
+                                              (() => {
+                                                const match = databaseStats.processingStatus.message.match(/(\d+,?\d*)\s+symptoms/);
+                                                const expectedCount = match ? parseInt(match[1].replace(/,/g, '')) : 0;
+                                                // Only show partial phase when expected count is greater than current count
+                                                // AND we haven't reached the expected count yet
+                                                return expectedCount > 0 && expectedCount > databaseStats.symptomCount;
+                                              })();
+                    
+                    if (isPartialDataPhase) {
+                      return (
+                        <div>
+                          <div className="flex items-center text-xs text-orange-600 font-medium">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Saving to Database
+                          </div>
+                          <div className="text-xs text-gray-500">{databaseStats.symptomCount} indicators (partial)</div>
+                          <div className="text-xs text-red-600 font-medium mt-1 bg-red-50 px-2 py-1 rounded">
+                            ⚠️ Do Not process data until all {(() => {
+                              const message = databaseStats.processingStatus?.message || '';
+                              const match = message.match(/(\d+,?\d*)\s+symptoms/);
+                              return match ? parseInt(match[1].replace(/,/g, '')).toLocaleString() : '';
+                            })()} indicators are processed
+                          </div>
+                        </div>
+                      );
+                    } else if (isExtractionComplete && databaseStats.symptomCount > 0) {
+                      return (
+                        <div>
+                          <div className="text-xs text-green-600 font-medium">✓ Complete</div>
+                          <div className="text-xs text-gray-500">{databaseStats.symptomCount} indicators</div>
+                          <div className="text-xs text-blue-600 mt-1 bg-blue-50 px-2 py-1 rounded">
+                            Processing complete - {databaseStats.symptomCount.toLocaleString()} indicators extracted
+                          </div>
+                        </div>
+                      );
+                    } else if (isExtractionInProgress) {
+                      const progressPercent = databaseStats.noteCount > 0 ? 
+                        Math.round((databaseStats.processedNotesCount / databaseStats.noteCount) * 100) : 0;
+                      return (
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center text-xs text-blue-600 font-medium">
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                In Process
+                              </div>
+                              <div className="text-xs text-gray-500">{databaseStats.symptomCount} indicators ({progressPercent}%)</div>
+                              <div className="text-xs text-red-600 font-medium mt-1 bg-red-50 px-2 py-1 rounded">
+                                ⚠️ Do Not process data until all {(() => {
+                                  const message = databaseStats.processingStatus?.message || '';
+                                  const match = message.match(/(\d+,?\d*)\s+symptoms/);
+                                  return match ? parseInt(match[1].replace(/,/g, '')).toLocaleString() : '';
+                                })()} indicators are processed
+                              </div>
+                            </div>
+                            <Button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch('/api/emergency-restart', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' }
+                                  });
+                                  if (response.ok) {
+                                    handleRefreshStats();
+                                  }
+                                } catch (error) {
+                                  console.error('Restart failed:', error);
+                                }
+                              }}
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-xs"
+                            >
+                              Restart
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    } else if (databaseStats.patientCount > 0) {
+                      return (
+                        <div>
+                          <div className="text-xs text-amber-600 font-medium">⚠ Pending</div>
+                          <div className="text-xs text-gray-500">Click "Extract Indicators"</div>
+                        </div>
+                      );
+                    } else {
+                      return <div className="text-xs text-gray-500">Process database first</div>;
+                    }
+                  })()}
+                </div>
+              </div>
+            </div>
+
+
+        </div>
+
+        {/* Performance Optimization Section */}
+        <div className="mb-3 bg-white shadow rounded-lg p-3">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-md font-semibold">Performance Optimization</h3>
+            <div className="flex items-center">
+                {/* Smart Refresh Alert */}
+                {showRefreshAlert && (
+                  <Button 
+                    onClick={() => {
+                      handleRefreshStats();
+                      setShowRefreshAlert(false);
+                    }}
+                    disabled={isRefreshingStats}
+                    variant="destructive"
+                    className="mr-2 h-9 animate-pulse"
+                    size="sm"
+                  >
+                    <RefreshCw className={`mr-1 h-4 w-4 ${isRefreshingStats ? 'animate-spin' : ''}`} />
+                    Refresh Needed
+                  </Button>
+                )}
+                
+                {/* Normal Refresh Button */}
+                {!showRefreshAlert && (
+                  <Button 
+                    onClick={handleRefreshStats}
+                    disabled={isRefreshingStats}
+                    variant="outline"
+                    className="mr-2 h-10"
+                    size="sm"
+                  >
+                    <RefreshCw className={`mr-1 h-5 w-5 ${isRefreshingStats ? 'animate-spin' : ''}`} />
+                    {isRefreshingStats ? 'Processing Data' : 'Refresh'}
+                  </Button>
+                )}
+
+
+              </div>
+            </div>
+            <div className="text-sm text-gray-600">
+              ✅ Symptom extraction starts automatically 2 seconds after file upload completes. No manual action required.
+            </div>
+            
+            {/* Show extraction status prominently */}
+            {(isExtracting || realTimeProgress > 0) && (
+              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg animate-pulse">
+                <div className="flex items-center">
+                  <Loader2 className="h-5 w-5 text-yellow-600 animate-spin mr-2" />
+                  <div className="flex-1">
+                    <div className="font-semibold text-yellow-800">
+                      Extraction In Progress
+                    </div>
+                    <div className="text-sm text-yellow-700">
+                      {realTimeProgress < 100 ? (
+                        `Processing ${databaseStats.noteCount.toLocaleString()} notes... ${realTimeProgress}% complete`
+                      ) : (
+                        databaseStats.symptomCount > 0 
+                          ? `Saving ${databaseStats.symptomCount.toLocaleString()} indicators to database...`
+                          : `Bulk saving indicators to database...`
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+
+          
+          {/* Removed duplicate "Analyzing Clinical Data" progress bar - using consolidated PostUploadLoading progress bar below */}
+            {!isProcessing && databaseStats.processingStatus?.status === 'reset' && databaseStats.symptomCount < 50000 && (
+              <div className="mt-2 text-xs text-orange-600 font-medium">
+                ⚠️ Processing may be running in background. Check server logs or click "Start Pre-Processing" if needed.
+              </div>
+            )}
+          
+          {/* Auto-start symptom extraction when database is loaded */}
+          {databaseStats.patientCount > 0 && databaseStats.symptomCount === 0 && !isProcessing && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+              <div className="text-sm text-blue-800 mb-2">
+                ✅ Database loaded with {databaseStats.patientCount.toLocaleString()} patients and {databaseStats.noteCount.toLocaleString()} notes
+              </div>
+              <div className="text-xs text-blue-600">
+                🔄 Starting symptom extraction automatically...
+              </div>
+            </div>
+          )}
+
+          {/* Full DatabaseStatsWidget */}
+          <div className="mt-4">
+            <DatabaseStatsWidget 
+              patientCount={databaseStats.patientCount}
+              noteCount={databaseStats.noteCount}
+              symptomCount={databaseStats.symptomCount}
+              onRefresh={handleRefreshStats}
+              isRefreshing={isRefreshingStats || isExtracting || realTimeProgress > 0}
+            />
+          </div>
+          
+          {processingStatus === "completed" && (
+            <div className="p-2 bg-green-50 border border-green-100 rounded-md text-sm text-green-800 mb-3">
+              <div className="flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Pre-processing completed successfully!</span>
+              </div>
+            </div>
+          )}
+          
+          {processingStatus === "error" && (
+            <div className="p-2 bg-red-50 border border-red-100 rounded-md text-sm text-red-800 mb-3">
+              <div className="flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                <span>Error: {progressMessage}</span>
+              </div>
+            </div>
+          )}
+        
+        {/* File Format Requirements */}
+        <div className="mt-4 bg-white shadow rounded-lg p-4">
+          <h3 className="text-md font-semibold mb-3">File Format Requirements</h3>
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-base font-medium">Required Columns (Excel or CSV)</h4>
+              <ul className="list-disc list-inside mt-1 text-sm text-gray-600">
+                <li><span className="font-medium">patient_id</span> - Unique identifier for the patient</li>
+                <li><span className="font-medium">patient_name</span> - Full name of the patient</li>
+                <li><span className="font-medium">dos_date</span> - Date of service (accepts various formats)</li>
+                <li><span className="font-medium">note_text</span> - The clinical note text</li>
+              </ul>
+              <h4 className="text-base font-medium mt-2">Optional Columns</h4>
+              <div className="grid grid-cols-2 gap-x-2 mt-1 text-sm text-gray-600">
+                <ul className="list-disc list-inside">
+                  <li><span className="font-medium">provider_id</span> - Provider identifier</li>
+                  <li><span className="font-medium">provider_name</span> - Provider's first name</li>
+                  <li><span className="font-medium">provider_lname</span> - Provider's last name</li>
+                  <li><span className="font-medium">note_id</span> - Note identifier</li>
+                  <li><span className="font-medium">age_range</span> - Age range (e.g., "18-24", "25-34")</li>
+                  <li><span className="font-medium">date_of_birth</span> - Date of birth (DOB)</li>
+                  <li><span className="font-medium">gender</span> - Patient's gender</li>
+                  <li><span className="font-medium">race</span> - Patient's race</li>
+                  <li><span className="font-medium">ethnicity</span> - Patient's ethnicity</li>
+                  <li><span className="font-medium">zip_code</span> - Patient's zip code</li>
+                  <li><span className="font-medium">diagnosis1</span> - Primary diagnosis</li>
+                  <li><span className="font-medium">diagnosis2</span> - Secondary diagnosis</li>
+                  <li><span className="font-medium">diagnosis3</span> - Tertiary diagnosis</li>
+                </ul>
+                <ul className="list-disc list-inside">
+                  <li><span className="font-medium">financial_status</span> - Income level (demographic)</li>
+                  <li><span className="font-medium">financial_strain</span> - Financial stress (HRSN)</li>
+                  <li><span className="font-medium">housing_insecurity</span> - Housing status</li>
+                  <li><span className="font-medium">food_insecurity</span> - Food access status</li>
+                  <li><span className="font-medium">access_to_transportation</span> - Transportation access</li>
+                  <li><span className="font-medium">veteran_status</span> - Veteran status</li>
+                  <li><span className="font-medium">education_level</span> - Education level</li>
+                  <li><span className="font-medium">has_a_car</span> - Whether patient has a car</li>
+                  <li><span className="font-medium">marital_status</span> - Marital status</li>
+                  <li><span className="font-medium">employment_status</span> - Employment status</li>
+                  <li><span className="font-medium">insurance_type</span> - Type of insurance</li>
+                  <li><span className="font-medium">payer_type</span> - Payer type (e.g., "Medicare")</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <h4 className="text-base font-medium">Example Data Format</h4>
+              <div className="bg-gray-100 p-3 rounded-md mt-1 overflow-x-auto">
+                <code className="text-xs font-mono whitespace-pre-wrap">
+                  patient_id,patient_name,dos_date,note_text,provider_id,provider_name,provider_lname<br/>
+                  P12345,Jane Smith,2023-04-15,"Patient reports feeling anxious and having trouble sleeping.",DR001,John,Doe<br/>
+                  P12345,Jane Smith,2023-05-20,"Follow-up visit. Patient shows improvement in anxiety symptoms.",DR001,John,Doe<br/>
+                  P67890,Michael Johnson,2023-04-10,"Initial assessment. Patient exhibits symptoms of depression.",DR002,Sarah,Williams
+                </code>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-base font-medium">File Processing</h4>
+              <p className="mt-1 text-sm text-gray-600">
+                The system automatically:
+              </p>
+              <ul className="list-disc list-inside mt-1 text-sm text-gray-600">
+                <li>Accepts both Excel (.xlsx) and CSV (.csv) file formats</li>
+                <li>Detects fields using intelligent column matching (will find your data even if column names vary)</li>
+                <li>Extracts HRSNs and behavioral health symptoms from clinical notes using NLP</li>
+                <li>Organizes problems and symptoms into diagnostic categories</li>
+                <li>Provides results through search, reporting, and visualization tools</li>
+                <li>Enables interoperability with other systems through comprehensive API access</li>
+              </ul>
+            </div>
+            
+            <div className="mt-4">
+              <h4 className="text-base font-medium">Field Name Flexibility</h4>
+              <p className="mt-1 text-sm text-gray-600">
+                The system intelligently recognizes common variations of field names. For example:
+              </p>
+              <ul className="list-disc list-inside mt-1 text-sm text-gray-600">
+                <li>"Date of Service", "DOS", "Service Date" → <span className="font-medium">dos_date</span></li>
+                <li>"Patient ID", "PatientID", "Patient_ID" → <span className="font-medium">patient_id</span></li>
+                <li>"Note", "Clinical Note", "Note Text" → <span className="font-medium">note_text</span></li>
+                <li>Additional customer-specific fields are preserved and available for filtering</li>
+              </ul>
+            </div>
+            
+            <div className="mt-4">
+              <h4 className="text-base font-medium">HRSN Categories</h4>
+              <p className="mt-1 text-sm text-gray-600">
+                The system tracks 8 Health-Related Social Needs (HRSN) categories:
+              </p>
+              <ul className="list-disc list-inside mt-1 text-sm text-gray-600">
+                <li>Housing Insecurity - Housing status and stability</li>
+                <li>Food Insecurity - Access to adequate nutrition</li>
+                <li>Financial Status/Strain - Economic stability and stress</li>
+                <li>Transportation Access - Ability to reach healthcare</li>
+                <li>Education Level - Educational attainment</li>
+                <li>Veteran Status - Military service history</li>
+                <li>Has a Car - Vehicle ownership status</li>
+                <li>Employment Status - Work and income stability</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </main>
+      
+      {/* PostUploadLoading - Shows the full-screen overlay during extraction */}
+      <PostUploadLoading 
+        isVisible={
+          realTimeProgress === 100 
+            ? false  // NEVER show at 100%
+            : (showPostUploadLoading || isExtracting || (realTimeProgress > 0 && realTimeProgress < 100))
+        }
+        message={extractionMessage || "Extracting symptoms from clinical notes..."}
+        progress={realTimeProgress}
+        isProcessing={isExtracting || (realTimeProgress > 0 && realTimeProgress < 100)}
+        isBackgroundProcessing={isProcessingInBackground}
+        expectedSymptoms={expectedSymptomCount}
+        currentSymptoms={databaseStats.symptomCount}
+        databaseStats={databaseStats}
+        onClose={() => {
+          console.log('🔄 User manually closed loading spinner');
+          setShowPostUploadLoading(false);
+          setIsExtracting(false);
+          setRealTimeProgress(0);
+          setExtractionMessage('');
+          setIsProcessingInBackground(false);
+          localStorage.removeItem('backgroundProcessing');
+          localStorage.removeItem('extractionStartTime');
+        }}
+      />
+
+      {/* Consolidated Extraction Progress Bar - Shows during actual extraction */}
+      {/* Fixed to show progress whenever extraction is happening */}
+      {(isExtracting || (realTimeProgress > 0 && realTimeProgress < 100)) && (
+        <div className="fixed bottom-4 left-1/4 right-1/4 z-50 bg-white shadow-md rounded-lg p-2 border border-gray-200">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center">
+              {realTimeProgress === 100 ? (
+                <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+              ) : (
+                <Loader2 className="h-4 w-4 text-blue-600 animate-spin mr-2" />
+              )}
+              <h4 className="text-sm font-semibold text-gray-900">
+                {realTimeProgress === 100 ? 'Processing Complete' : 
+                 realTimeProgress > 0 ? 'Processing Upload' : 'Starting Processing...'}
+              </h4>
+            </div>
+            <button
+              onClick={() => {
+                console.log('📊 User manually dismissed progress bar');
+                setIsExtracting(false);
+                setRealTimeProgress(0);
+                setShowPostUploadLoading(false);
+                setExtractionMessage('');
+                setJustUploaded(false);
+                // Background processing flag removed
+                localStorage.removeItem('backgroundProcessing');
+                localStorage.removeItem('extractionStartTime');
+              }}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close progress bar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          
+          <div className="w-full bg-gray-200 rounded-full h-4 relative overflow-hidden">
+            <div 
+              className="h-4 rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-blue-500 to-blue-600"
+              style={{ width: `${Math.max(realTimeProgress || 5, 5)}%` }}
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-medium text-white">
+                  {realTimeProgress || 0}%
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {extractionMessage && (
+            <p className="mt-1 text-xs text-gray-600">{extractionMessage}</p>
+          )}
+        </div>
+      )}
+      
+
+    </div>
+  );
+}

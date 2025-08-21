@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Recovery Tools</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #d32f2f;
+      border-bottom: 2px solid #d32f2f;
+      padding-bottom: 10px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .card h2 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      min-width: 180px;
+      font-size: 16px;
+      transition: background-color 0.2s;
+    }
+    .primary {
+      background-color: #4caf50;
+      color: white;
+    }
+    .primary:hover {
+      background-color: #388e3c;
+    }
+    .warning {
+      background-color: #ff9800;
+      color: white;
+    }
+    .warning:hover {
+      background-color: #f57c00;
+    }
+    .danger {
+      background-color: #f44336;
+      color: white;
+    }
+    .danger:hover {
+      background-color: #d32f2f;
+    }
+    .info {
+      background-color: #2196f3;
+      color: white;
+    }
+    .info:hover {
+      background-color: #1976d2;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+      background-color: #f5f5f5;
+      border-left: 4px solid #2196f3;
+    }
+    .status.success {
+      border-left-color: #4caf50;
+      background-color: #e8f5e9;
+    }
+    .status.error {
+      border-left-color: #f44336;
+      background-color: #ffebee;
+    }
+    .hidden {
+      display: none;
+    }
+    #countdown {
+      font-weight: bold;
+      color: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+  <h1>Emergency Recovery Tools</h1>
+  
+  <div class="card">
+    <h2>Current Analysis Process Status</h2>
+    <p>Use these tools only if your analysis is stuck or not completing properly.</p>
+    <div id="status" class="status">
+      <p>Checking current status...</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Basic Recovery Options</h2>
+    <p>Try these options first before attempting more drastic measures.</p>
+    <div class="button-group">
+      <button id="forceCompleteBtn" class="primary">Force Complete Process</button>
+      <button id="boostBtn" class="info">Boost Processing Speed</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Advanced Recovery Options</h2>
+    <p>Use these options only if the basic options don't work.</p>
+    <div class="button-group">
+      <button id="forceStopBtn" class="warning">Force Stop Process</button>
+      <button id="resetBtn" class="danger hidden">Reset Process</button>
+    </div>
+    <p id="resetCountdown" class="hidden">Reset button will appear in <span id="countdown">20</span> seconds...</p>
+  </div>
+
+  <script>
+    // DOM references
+    const statusElement = document.getElementById('status');
+    const forceCompleteBtn = document.getElementById('forceCompleteBtn');
+    const boostBtn = document.getElementById('boostBtn');
+    const forceStopBtn = document.getElementById('forceStopBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const resetCountdownEl = document.getElementById('resetCountdown');
+    const countdownEl = document.getElementById('countdown');
+    
+    // Function to check current processing status
+    async function checkStatus() {
+      try {
+        const response = await fetch('/api/processing-status/extract_symptoms');
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        let statusHTML = `
+          <p><strong>Status:</strong> ${data.status}</p>
+          <p><strong>Progress:</strong> ${data.progress}%</p>
+          <p><strong>Message:</strong> ${data.message}</p>
+          <p><strong>Last Update:</strong> ${new Date(data.timestamp).toLocaleTimeString()}</p>
+        `;
+        
+        if (data.status === 'in_progress' && data.progress === 45) {
+          statusHTML += `<p><strong>Diagnosis:</strong> Process appears to be stalled at 45%</p>`;
+          statusElement.classList.add('error');
+        } else if (data.status === 'completed') {
+          statusHTML += `<p><strong>Diagnosis:</strong> Process completed successfully</p>`;
+          statusElement.classList.add('success');
+        } else if (data.status === 'error') {
+          statusHTML += `<p><strong>Diagnosis:</strong> Process encountered an error</p>`;
+          statusElement.classList.add('error');
+        }
+        
+        statusElement.innerHTML = statusHTML;
+      } catch (error) {
+        statusElement.innerHTML = `<p>Error checking status: ${error.message}</p>`;
+        statusElement.classList.add('error');
+      }
+    }
+    
+    // Force complete the process
+    async function forceComplete() {
+      try {
+        forceCompleteBtn.disabled = true;
+        forceCompleteBtn.textContent = 'Processing...';
+        
+        const response = await fetch('/api/force-complete-processing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ taskType: 'extract_symptoms' })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
+        const result = await response.json();
+        alert('Process forced to complete. You can now return to the main application.');
+        await checkStatus();
+      } catch (error) {
+        alert(`Error forcing completion: ${error.message}`);
+      } finally {
+        forceCompleteBtn.disabled = false;
+        forceCompleteBtn.textContent = 'Force Complete Process';
+      }
+    }
+    
+    // Boost processing speed
+    async function boostProcessing() {
+      try {
+        boostBtn.disabled = true;
+        boostBtn.textContent = 'Boosting...';
+        
+        const response = await fetch('/api/boost-processing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ taskType: 'extract_symptoms' })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
+        const result = await response.json();
+        alert('Processing speed boosted. This may help overcome memory bottlenecks.');
+        await checkStatus();
+      } catch (error) {
+        alert(`Error boosting process: ${error.message}`);
+      } finally {
+        boostBtn.disabled = false;
+        boostBtn.textContent = 'Boost Processing Speed';
+      }
+    }
+    
+    // Force stop the process
+    async function forceStop() {
+      if (!confirm('Are you sure you want to force stop the process? This will discard current progress.')) {
+        return;
+      }
+      
+      try {
+        forceStopBtn.disabled = true;
+        forceStopBtn.textContent = 'Stopping...';
+        
+        const response = await fetch('/api/force-stop-processing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ taskType: 'extract_symptoms' })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
+        const result = await response.json();
+        alert('Process forced to stop. You can now return to the main application and try again.');
+        await checkStatus();
+      } catch (error) {
+        alert(`Error stopping process: ${error.message}`);
+      } finally {
+        forceStopBtn.disabled = false;
+        forceStopBtn.textContent = 'Force Stop Process';
+      }
+    }
+    
+    // Reset the process completely
+    async function resetProcess() {
+      if (!confirm('WARNING: This will completely reset the process and clear all related data. This is a last resort option. Continue?')) {
+        return;
+      }
+      
+      try {
+        resetBtn.disabled = true;
+        resetBtn.textContent = 'Resetting...';
+        
+        const response = await fetch('/api/reset-processing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ taskType: 'extract_symptoms' })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
+        const result = await response.json();
+        alert('Process has been completely reset. You can now return to the main application and try again.');
+        await checkStatus();
+      } catch (error) {
+        alert(`Error resetting process: ${error.message}`);
+      } finally {
+        resetBtn.disabled = false;
+        resetBtn.textContent = 'Reset Process';
+      }
+    }
+    
+    // Countdown for reset button
+    function startResetCountdown() {
+      resetCountdownEl.classList.remove('hidden');
+      let seconds = 20;
+      countdownEl.textContent = seconds;
+      
+      const interval = setInterval(() => {
+        seconds--;
+        countdownEl.textContent = seconds;
+        
+        if (seconds <= 0) {
+          clearInterval(interval);
+          resetCountdownEl.classList.add('hidden');
+          resetBtn.classList.remove('hidden');
+        }
+      }, 1000);
+    }
+    
+    // Event listeners
+    forceCompleteBtn.addEventListener('click', forceComplete);
+    boostBtn.addEventListener('click', boostProcessing);
+    forceStopBtn.addEventListener('click', forceStop);
+    resetBtn.addEventListener('click', resetProcess);
+    
+    // Initialize
+    checkStatus();
+    startResetCountdown();
+    
+    // Check status every 5 seconds
+    setInterval(checkStatus, 5000);
+  </script>
+</body>
+</html>

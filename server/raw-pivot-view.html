@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raw Pivot Table Viewer</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin-top: 0;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .patient-selector {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    
+    input, select {
+      padding: 8px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    .pivot-table {
+      margin-bottom: 30px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      overflow-x: auto;
+    }
+    
+    .pivot-table h2 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    
+    .pivot-controls {
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+    
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    
+    th {
+      background-color: #f2f2f2;
+      position: sticky;
+      top: 0;
+    }
+    
+    tbody th {
+      text-align: left;
+      background-color: #f8f8f8;
+      position: sticky;
+      left: 0;
+    }
+    
+    td.has-data {
+      background-color: #e6f7ff;
+      font-weight: bold;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+    }
+    
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #09f;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .data-count {
+      color: #666;
+      font-size: 0.9em;
+      margin-bottom: 10px;
+    }
+    
+    .pivot-tab-container {
+      margin-bottom: 20px;
+    }
+    
+    .pivot-tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .pivot-tab {
+      padding: 10px 15px;
+      cursor: pointer;
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      margin-right: 5px;
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+    }
+    
+    .pivot-tab.active {
+      background-color: white;
+      border-bottom: 1px solid white;
+      margin-bottom: -1px;
+      font-weight: bold;
+    }
+    
+    .pivot-content {
+      display: none;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-top: none;
+    }
+    
+    .pivot-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Raw Pivot Table Viewer</h1>
+    
+    <div class="patient-selector">
+      <h3>Select Patient</h3>
+      <input type="text" id="patientId" placeholder="Enter Patient ID" value="1">
+      <button id="loadButton">Load Data</button>
+    </div>
+    
+    <div id="loadingIndicator" class="loading" style="display: none;">
+      <div class="spinner"></div>
+    </div>
+    
+    <div id="errorMessage" style="display: none; color: red; padding: 15px; background-color: #ffeeee; margin-bottom: 20px; border-radius: 4px;"></div>
+    
+    <div id="resultContainer" style="display: none;">
+      <div class="data-count">
+        <strong>Patient ID:</strong> <span id="displayPatientId"></span>
+        <strong>Total Symptoms:</strong> <span id="symptomCount"></span>
+      </div>
+      
+      <div class="pivot-tab-container">
+        <div class="pivot-tabs">
+          <div class="pivot-tab active" data-tab="symptom-segments">Symptom Segments</div>
+          <div class="pivot-tab" data-tab="diagnoses">Diagnoses</div>
+          <div class="pivot-tab" data-tab="diagnostic-categories">Diagnostic Categories</div>
+          <div class="pivot-tab" data-tab="symptom-problems">Symptom Problems</div>
+          <div class="pivot-tab" data-tab="hrsn-codes">HRSN Z-Codes</div>
+        </div>
+        
+        <div class="pivot-content active" id="symptom-segments">
+          <div class="pivot-controls">
+            <label for="segmentFilter">Filter:</label>
+            <input type="text" id="segmentFilter" placeholder="Type to filter rows">
+          </div>
+          <div id="segmentTableContainer"></div>
+        </div>
+        
+        <div class="pivot-content" id="diagnoses">
+          <div class="pivot-controls">
+            <label for="diagnosisFilter">Filter:</label>
+            <input type="text" id="diagnosisFilter" placeholder="Type to filter rows">
+          </div>
+          <div id="diagnosisTableContainer"></div>
+        </div>
+        
+        <div class="pivot-content" id="diagnostic-categories">
+          <div class="pivot-controls">
+            <label for="categoryFilter">Filter:</label>
+            <input type="text" id="categoryFilter" placeholder="Type to filter rows">
+          </div>
+          <div id="categoryTableContainer"></div>
+        </div>
+        
+        <div class="pivot-content" id="symptom-problems">
+          <div class="pivot-controls">
+            <label for="problemFilter">Filter:</label>
+            <input type="text" id="problemFilter" placeholder="Type to filter rows">
+          </div>
+          <div id="problemTableContainer"></div>
+        </div>
+        
+        <div class="pivot-content" id="hrsn-codes">
+          <div class="pivot-controls">
+            <label for="hrsnFilter">Filter:</label>
+            <input type="text" id="hrsnFilter" placeholder="Type to filter rows">
+          </div>
+          <div id="hrsnTableContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const loadButton = document.getElementById('loadButton');
+      const patientIdInput = document.getElementById('patientId');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const errorMessage = document.getElementById('errorMessage');
+      const resultContainer = document.getElementById('resultContainer');
+      const displayPatientId = document.getElementById('displayPatientId');
+      const symptomCount = document.getElementById('symptomCount');
+      
+      // Tab handling
+      const tabs = document.querySelectorAll('.pivot-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          // Remove active class from all tabs and contents
+          document.querySelectorAll('.pivot-tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.pivot-content').forEach(c => c.classList.remove('active'));
+          
+          // Add active class to current tab and corresponding content
+          tab.classList.add('active');
+          const tabId = tab.getAttribute('data-tab');
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+      
+      // Load data when button is clicked
+      loadButton.addEventListener('click', loadData);
+      
+      // Also load on Enter key in the patient ID field
+      patientIdInput.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+          loadData();
+        }
+      });
+      
+      // Initial load with default patient
+      loadData();
+      
+      function loadData() {
+        const patientId = patientIdInput.value.trim() || '1';
+        displayPatientId.textContent = patientId;
+        
+        // Show loading, hide previous results and errors
+        loadingIndicator.style.display = 'flex';
+        errorMessage.style.display = 'none';
+        resultContainer.style.display = 'none';
+        
+        // Fetch data from the API
+        fetch(`/simple-pivot-debug?patientId=${patientId}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            // Process and display the data
+            symptomCount.textContent = data.symptomCount;
+            
+            // Render each pivot table
+            renderPivotTable(data.pivot_tables.symptom_segments, 'segmentTableContainer');
+            renderPivotTable(data.pivot_tables.diagnoses, 'diagnosisTableContainer');
+            renderPivotTable(data.pivot_tables.diagnostic_categories, 'categoryTableContainer');
+            renderPivotTable(data.pivot_tables.symptom_problems, 'problemTableContainer');
+            renderPivotTable(data.pivot_tables.HRSN_codes, 'hrsnTableContainer');
+            
+            // Setup filters for each table
+            setupFilter('segmentFilter', 'segmentTableContainer');
+            setupFilter('diagnosisFilter', 'diagnosisTableContainer');
+            setupFilter('categoryFilter', 'categoryTableContainer');
+            setupFilter('problemFilter', 'problemTableContainer');
+            setupFilter('hrsnFilter', 'hrsnTableContainer');
+            
+            // Hide loading, show results
+            loadingIndicator.style.display = 'none';
+            resultContainer.style.display = 'block';
+          })
+          .catch(error => {
+            // Handle and display errors
+            console.error('Error fetching pivot data:', error);
+            loadingIndicator.style.display = 'none';
+            errorMessage.textContent = `Error loading data: ${error.message}`;
+            errorMessage.style.display = 'block';
+          });
+      }
+      
+      function renderPivotTable(pivotData, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        
+        // Check if we have data
+        if (!pivotData || !pivotData.rows || pivotData.rows.length === 0) {
+          container.innerHTML = '<p>No data available for this pivot table.</p>';
+          return;
+        }
+        
+        // Create table element
+        const table = document.createElement('table');
+        
+        // Create header row
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        // Empty corner cell
+        const cornerCell = document.createElement('th');
+        headerRow.appendChild(cornerCell);
+        
+        // Date columns
+        pivotData.columns.forEach(column => {
+          const th = document.createElement('th');
+          th.textContent = column;
+          headerRow.appendChild(th);
+        });
+        
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Create body rows
+        const tbody = document.createElement('tbody');
+        
+        pivotData.rows.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.setAttribute('data-row', row.toLowerCase());
+          
+          // Row header
+          const rowHeader = document.createElement('th');
+          rowHeader.textContent = row;
+          tr.appendChild(rowHeader);
+          
+          // Data cells
+          pivotData.columns.forEach(column => {
+            const td = document.createElement('td');
+            const count = pivotData.data[row]?.[column] || 0;
+            
+            if (count > 0) {
+              td.textContent = count;
+              td.classList.add('has-data');
+            } else {
+              td.textContent = '';
+            }
+            
+            tr.appendChild(td);
+          });
+          
+          tbody.appendChild(tr);
+        });
+        
+        table.appendChild(tbody);
+        container.appendChild(table);
+      }
+      
+      function setupFilter(filterId, tableId) {
+        const filterInput = document.getElementById(filterId);
+        
+        filterInput.addEventListener('input', function() {
+          const filterValue = this.value.toLowerCase();
+          const tableContainer = document.getElementById(tableId);
+          const rows = tableContainer.querySelectorAll('tbody tr');
+          
+          rows.forEach(row => {
+            const rowText = row.getAttribute('data-row');
+            if (rowText && rowText.includes(filterValue)) {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          });
+        });
+      }
+    });
+  </script>
+</body>
+</html>

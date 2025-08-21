@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correct Order Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .card-content {
+            padding: 10px 0;
+        }
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            margin: 10px 0;
+        }
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .button svg {
+            height: 16px;
+            width: 16px;
+        }
+        .button.outline {
+            background-color: transparent;
+            border: 1px solid #ccc;
+            color: #333;
+        }
+        .flex-center {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Behavioral Health AI Solutions</h1>
+    
+    <!-- Step 1: Search Type - FIRST -->
+    <div class="card">
+        <div class="card-title">Step 1: Select Search Type</div>
+        <div class="card-content">
+            <label>Search Type</label>
+            <div class="radio-group">
+                <div class="radio-item">
+                    <input type="radio" id="individual" name="search-type" checked>
+                    <label for="individual">Individual Patient Search</label>
+                </div>
+                <div class="radio-item">
+                    <input type="radio" id="population" name="search-type">
+                    <label for="population">Population Health Analysis</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Step 2: File Selection - SECOND -->
+    <div class="card">
+        <div class="card-title">Step 2: File Selection</div>
+        <div class="card-content">
+            <p>Search for specific patients in your uploaded files.</p>
+            <div class="flex-center">
+                <button class="button outline">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <path d="M12 12v6"/>
+                        <path d="M15 15l-3-3-3 3"/>
+                    </svg>
+                    Upload New File
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Step 3: Date Range Selection - THIRD -->
+    <div class="card">
+        <div class="card-title">Step 3: Date Range Selection</div>
+        <div class="card-content">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div>
+                    <label>Start Date</label>
+                    <input type="date" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div>
+                    <label>End Date</label>
+                    <input type="date" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+            </div>
+            <div style="margin-top: 12px;">
+                <div class="radio-item">
+                    <input type="checkbox" id="use-all-dates">
+                    <label for="use-all-dates">Use all dates</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <p style="text-align: center; margin-top: 30px;">
+        This HTML example shows the correct order of components as requested:
+        <br>1) Search Type, 2) File Selection, 3) Date Range
+    </p>
+</body>
+</html>

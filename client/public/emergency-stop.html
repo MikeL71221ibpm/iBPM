@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Process Recovery</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+            line-height: 1.5;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        h1 {
+            color: #2a2a2a;
+            border-bottom: 1px solid #eaeaea;
+            padding-bottom: 10px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+            transition: background-color 0.2s;
+        }
+        .stop-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .stop-btn:hover {
+            background-color: #bd2130;
+        }
+        .complete-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .complete-btn:hover {
+            background-color: #218838;
+        }
+        .reset-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        .reset-btn:hover {
+            background-color: #5a6268;
+        }
+        .boost-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        .boost-btn:hover {
+            background-color: #0069d9;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #e2f0fd;
+            color: #0c5460;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .option-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eaeaea;
+            border-radius: 4px;
+        }
+        .option-group h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Emergency Process Recovery</h1>
+        
+        <div class="warning">
+            <strong>Warning:</strong> Use these options only when processing has stalled or when directed by support. These actions cannot be undone.
+        </div>
+
+        <div class="option-group">
+            <h3>Option 1: Force Stop Processing</h3>
+            <p>Immediately stops all processing operations but keeps extracted data. Use this when processing appears stuck.</p>
+            <button id="forceStopBtn" class="stop-btn">Force Stop Processing</button>
+        </div>
+
+        <div class="option-group">
+            <h3>Option 2: Force Complete Processing</h3>
+            <p>Marks the current process as completed regardless of its actual state. This can help when processing is near completion but stuck.</p>
+            <button id="forceCompleteBtn" class="complete-btn">Force Complete Processing</button>
+        </div>
+
+        <div class="option-group">
+            <h3>Option 3: Reset All Processing</h3>
+            <p>Completely resets the processing state and clears all temporary data. Most severe option - use only when other options don't work.</p>
+            <button id="resetBtn" class="reset-btn">Reset All Processing</button>
+        </div>
+
+        <div class="option-group">
+            <h3>Option 4: Boost Processing</h3>
+            <p>Attempts to speed up processing by allocating more resources. Try this before more drastic measures.</p>
+            <button id="boostBtn" class="boost-btn">Boost Processing Speed</button>
+        </div>
+        
+        <div id="status" style="display: none;"></div>
+        
+        <pre id="statusDetail" style="display: none;"></pre>
+        
+        <p style="margin-top: 20px;">
+            <a href="/" style="color: #007bff; text-decoration: none;">Return to Application</a>
+        </p>
+    </div>
+
+    <script>
+        // Default task type for all operations
+        const defaultTaskType = 'extract_symptoms';
+        
+        // Helper to show status messages
+        function showStatus(message, type, details = null) {
+            const statusEl = document.getElementById('status');
+            const detailEl = document.getElementById('statusDetail');
+            
+            statusEl.textContent = message;
+            statusEl.className = type;
+            statusEl.style.display = 'block';
+            
+            if (details) {
+                detailEl.textContent = JSON.stringify(details, null, 2);
+                detailEl.style.display = 'block';
+            } else {
+                detailEl.style.display = 'none';
+            }
+            
+            // Scroll to show status
+            statusEl.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Force Stop Processing
+        document.getElementById('forceStopBtn').addEventListener('click', async () => {
+            try {
+                showStatus('Stopping processing...', 'info');
+                
+                const response = await fetch('/api/force-stop-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ taskType: defaultTaskType })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus('Processing successfully stopped. You can now safely return to the application.', 'success', result);
+                } else {
+                    showStatus(`Error stopping processing: ${result.error || 'Unknown error'}`, 'error', result);
+                }
+            } catch (error) {
+                showStatus(`Network error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Force Complete Processing
+        document.getElementById('forceCompleteBtn').addEventListener('click', async () => {
+            try {
+                showStatus('Forcing process completion...', 'info');
+                
+                const response = await fetch('/api/force-complete-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ taskType: defaultTaskType })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus('Process marked as complete. Data may be incomplete but the application should now be usable.', 'success', result);
+                } else {
+                    showStatus(`Error completing process: ${result.error || 'Unknown error'}`, 'error', result);
+                }
+            } catch (error) {
+                showStatus(`Network error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Reset All Processing
+        document.getElementById('resetBtn').addEventListener('click', async () => {
+            if (confirm('WARNING: This will delete all temporary processing data. Are you absolutely sure?')) {
+                try {
+                    showStatus('Resetting all processing data...', 'info');
+                    
+                    const response = await fetch('/api/reset-processing', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ taskType: defaultTaskType })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        showStatus('Processing state completely reset. You may need to restart the application.', 'success', result);
+                    } else {
+                        showStatus(`Error resetting process: ${result.error || 'Unknown error'}`, 'error', result);
+                    }
+                } catch (error) {
+                    showStatus(`Network error: ${error.message}`, 'error');
+                }
+            }
+        });
+        
+        // Boost Processing
+        document.getElementById('boostBtn').addEventListener('click', async () => {
+            try {
+                showStatus('Attempting to boost processing speed...', 'info');
+                
+                const response = await fetch('/api/boost-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ taskType: defaultTaskType })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus('Processing speed boost applied. This may take a moment to take effect.', 'success', result);
+                } else {
+                    showStatus(`Error applying boost: ${result.error || 'Unknown error'}`, 'error', result);
+                }
+            } catch (error) {
+                showStatus(`Network error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Check current processing status on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(`/api/processing-status/${defaultTaskType}`);
+                const status = await response.json();
+                
+                if (status) {
+                    showStatus(`Current processing status: ${status.status} (${status.progress}%)`, 'info', status);
+                }
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        });
+    </script>
+</body>
+</html>

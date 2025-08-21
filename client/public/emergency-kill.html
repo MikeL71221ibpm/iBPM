@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMERGENCY PROCESS KILL</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            line-height: 1.5;
+            background-color: #f8f8f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            text-align: center;
+        }
+        h1 {
+            color: #e53935;
+            margin-top: 0;
+            font-size: 28px;
+        }
+        .warning {
+            background-color: #ffebee;
+            border-left: 4px solid #e53935;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 16px;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        .btn {
+            display: block;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-danger {
+            background-color: #e53935;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c62828;
+        }
+        .btn-warning {
+            background-color: #ff9800;
+            color: white;
+        }
+        .btn-warning:hover {
+            background-color: #f57c00;
+        }
+        .btn-success {
+            background-color: #4caf50;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #388e3c;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: none;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .footer {
+            margin-top: 30px;
+        }
+        .return-link {
+            color: #2196f3;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .return-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EMERGENCY PROCESSING CONTROL</h1>
+        
+        <div class="warning">
+            <strong>Warning:</strong> This page provides emergency controls to force stop or reset processing operations that have become unresponsive. Use these options only as a last resort.
+        </div>
+        
+        <div class="btn-group">
+            <button id="directKillBtn" class="btn btn-danger">FORCE KILL ALL PROCESSING (RECOMMENDED)</button>
+            <button id="directCompleteBtn" class="btn btn-success">FORCE MARK AS COMPLETE</button>
+            <button id="resetStatusBtn" class="btn btn-warning">RESET PROCESSING STATUS</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div id="additionalOptions" style="display: none; margin-top: 20px;">
+            <p><strong>If the above options don't work, try these advanced options:</strong></p>
+            <button id="directDbUpdateBtn" class="btn btn-warning">DIRECTLY UPDATE DATABASE STATUS</button>
+            <button id="clearCacheBtn" class="btn btn-warning">CLEAR BROWSER CACHE & RELOAD</button>
+        </div>
+        
+        <div class="footer">
+            <a href="/" class="return-link">Return to Application</a>
+        </div>
+    </div>
+
+    <script>
+        let attemptCount = 0;
+        
+        // Helper function to show status
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = type;
+            statusEl.style.display = 'block';
+            
+            // Show additional options after multiple attempts
+            attemptCount++;
+            if (attemptCount >= 2) {
+                document.getElementById('additionalOptions').style.display = 'block';
+            }
+        }
+        
+        // Force Kill Button
+        document.getElementById('directKillBtn').addEventListener('click', async () => {
+            try {
+                showStatus('Attempting to force kill all processing...', '');
+                
+                // Call force stop endpoint with direct kill flag
+                const response = await fetch('/api/force-stop-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        taskType: 'extract_symptoms',
+                        forceKill: true,
+                        timestamp: Date.now() // Add timestamp to prevent caching
+                    })
+                });
+                
+                if (response.ok) {
+                    showStatus('Processing has been force killed. You can now return to the application.', 'success');
+                } else {
+                    const data = await response.json();
+                    showStatus(`Error: ${data.error || 'Failed to kill processing'}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Network error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Force Complete Button
+        document.getElementById('directCompleteBtn').addEventListener('click', async () => {
+            try {
+                showStatus('Attempting to force mark processing as complete...', '');
+                
+                // Call force complete endpoint
+                const response = await fetch('/api/force-complete-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        taskType: 'extract_symptoms',
+                        timestamp: Date.now() // Add timestamp to prevent caching
+                    })
+                });
+                
+                if (response.ok) {
+                    showStatus('Processing has been marked as complete. You can now return to the application.', 'success');
+                } else {
+                    const data = await response.json();
+                    showStatus(`Error: ${data.error || 'Failed to complete processing'}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Network error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Reset Processing Status
+        document.getElementById('resetStatusBtn').addEventListener('click', async () => {
+            try {
+                showStatus('Attempting to reset processing status...', '');
+                
+                // Call reset endpoint
+                const response = await fetch('/api/reset-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        taskType: 'extract_symptoms',
+                        timestamp: Date.now() // Add timestamp to prevent caching
+                    })
+                });
+                
+                if (response.ok) {
+                    showStatus('Processing status has been reset. You can now return to the application.', 'success');
+                } else {
+                    const data = await response.json();
+                    showStatus(`Error: ${data.error || 'Failed to reset processing'}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Network error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Direct Database Update Button
+        document.getElementById('directDbUpdateBtn').addEventListener('click', async () => {
+            try {
+                showStatus('Attempting direct database update...', '');
+                
+                // Call a special endpoint that directly updates the database
+                const response = await fetch('/api/direct-db-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        taskType: 'extract_symptoms',
+                        userId: 2, // Default to admin user ID
+                        force: true,
+                        timestamp: Date.now()
+                    })
+                });
+                
+                if (response.ok) {
+                    showStatus('Database has been directly updated. Please reload the application.', 'success');
+                } else {
+                    const data = await response.json();
+                    showStatus(`Error: ${data.error || 'Failed to update database'}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Network error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Clear Cache Button
+        document.getElementById('clearCacheBtn').addEventListener('click', () => {
+            try {
+                showStatus('Clearing browser cache...', '');
+                
+                // Clear session storage
+                sessionStorage.clear();
+                
+                // Clear local storage
+                localStorage.clear();
+                
+                // Attempt to clear all application cache data
+                if (window.caches) {
+                    window.caches.keys().then(cacheNames => {
+                        cacheNames.forEach(cacheName => {
+                            window.caches.delete(cacheName);
+                        });
+                    });
+                }
+                
+                // Force reload the page
+                setTimeout(() => {
+                    showStatus('Cache cleared. Reloading application...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/?clearcache=' + Date.now();
+                    }, 1000);
+                }, 500);
+            } catch (error) {
+                showStatus(`Error clearing cache: ${error.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raw Pivot Tables Debug</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0069d9;
+    }
+    .pivot-table {
+      margin-bottom: 30px;
+      border: 4px solid #dc3545;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    h2 {
+      color: #dc3545;
+      margin-top: 0;
+    }
+    pre {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 500px;
+      font-size: 12px;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+      color: #666;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Raw Pivot Tables Debug</h1>
+    
+    <div class="form-group">
+      <input type="text" id="patientId" placeholder="Enter Patient ID" value="1">
+      <button id="fetchBtn">Fetch Data</button>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div id="tables"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const patientIdInput = document.getElementById('patientId');
+      const fetchBtn = document.getElementById('fetchBtn');
+      const statusDiv = document.getElementById('status');
+      const tablesDiv = document.getElementById('tables');
+      
+      // Function to create pivot tables from symptoms
+      function createPivotTable(data, rowField, columnField) {
+        try {
+          console.log(`Creating pivot table: ${rowField} by ${columnField} with ${data.length} records`);
+          
+          // Handle snakeCase to camelCase field names
+          const getFieldValue = (item, field) => {
+            // Check for the snake_case version
+            if (item[field] !== undefined) {
+              return item[field];
+            }
+            
+            // Check for camelCase version
+            const camelField = field.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+            if (item[camelField] !== undefined) {
+              return item[camelField];
+            }
+            
+            // Special case for ZCode_HRSN which might be stored differently
+            if (field === 'ZCode_HRSN' && item.zCodeHrsn !== undefined) {
+              return item.zCodeHrsn;
+            }
+            
+            return undefined;
+          };
+          
+          // Create sets for unique row and column values
+          const rowValues = new Set();
+          const columnValues = new Set();
+          
+          // Create an object to hold our pivot data
+          const pivotData = {};
+          
+          // Process each data item
+          for (const item of data) {
+            // Extract row value (segment, diagnosis, etc)
+            let rowValue = getFieldValue(item, rowField);
+            if (!rowValue || rowValue === 'null' || rowValue === 'undefined') {
+              rowValue = 'Unknown';
+            }
+            rowValue = String(rowValue);
+            
+            // Extract column value (date)
+            let columnValue = getFieldValue(item, columnField);
+            if (!columnValue || columnValue === 'null' || columnValue === 'undefined') {
+              continue; // Skip items without a date
+            }
+            
+            // Format date as MM/DD/YY if it's not already
+            if (typeof columnValue === 'string' && columnValue.includes('T')) {
+              // Parse ISO date string
+              const date = new Date(columnValue);
+              columnValue = date.toLocaleDateString('en-US', {
+                month: 'numeric',
+                day: 'numeric',
+                year: '2-digit'
+              });
+            }
+            columnValue = String(columnValue);
+            
+            // Add to sets of unique values
+            rowValues.add(rowValue);
+            columnValues.add(columnValue);
+            
+            // Initialize nested objects if needed
+            if (!pivotData[rowValue]) {
+              pivotData[rowValue] = {};
+            }
+            
+            if (!pivotData[rowValue][columnValue]) {
+              pivotData[rowValue][columnValue] = { count: 0 };
+            }
+            
+            // Increment count
+            pivotData[rowValue][columnValue].count++;
+            
+            // Track mention ID if available
+            const mentionId = getFieldValue(item, 'mention_id');
+            if (mentionId && pivotData[rowValue] && pivotData[rowValue][columnValue]) {
+              if (!pivotData[rowValue][columnValue].mentions) {
+                pivotData[rowValue][columnValue].mentions = 1;
+              } else {
+                pivotData[rowValue][columnValue].mentions = (pivotData[rowValue][columnValue].mentions || 0) + 1;
+              }
+            }
+          }
+          
+          // Convert sets to arrays
+          const rows = Array.from(rowValues);
+          const columns = Array.from(columnValues);
+          
+          // Sort rows alphabetically (except "Unknown" which should be last)
+          rows.sort((a, b) => {
+            if (a === 'Unknown') return 1;
+            if (b === 'Unknown') return -1;
+            return a.localeCompare(b);
+          });
+          
+          // Sort date columns chronologically
+          columns.sort((a, b) => {
+            // Helper function to parse MM/DD/YY dates
+            const parseDate = (dateStr) => {
+              const parts = dateStr.split('/');
+              if (parts.length === 3) {
+                const month = parseInt(parts[0], 10) - 1;
+                const day = parseInt(parts[1], 10);
+                const year = parts[2].length === 2 ? 2000 + parseInt(parts[2], 10) : parseInt(parts[2], 10);
+                return new Date(year, month, day).getTime();
+              }
+              return new Date(dateStr).getTime();
+            };
+            
+            return parseDate(a) - parseDate(b);
+          });
+          
+          console.log(`Pivot table created with ${rows.length} rows and ${columns.length} columns`);
+          
+          return {
+            rows,
+            columns,
+            data: pivotData
+          };
+        } catch (error) {
+          console.error("Error creating pivot table:", error);
+          return {
+            rows: [],
+            columns: [],
+            data: {}
+          };
+        }
+      }
+      
+      // Function to fetch and process data
+      async function fetchData() {
+        const patientId = patientIdInput.value.trim();
+        
+        if (!patientId) {
+          statusDiv.innerHTML = '<div class="error">Please enter a Patient ID</div>';
+          return;
+        }
+        
+        statusDiv.innerHTML = '<div class="loading">Loading data...</div>';
+        tablesDiv.innerHTML = '';
+        
+        try {
+          const response = await fetch('/api/extract-symptoms', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              patientIds: [patientId],
+              useAllDates: true
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          
+          // Extract symptoms array from the response
+          let symptoms = [];
+          if (data.symptoms && Array.isArray(data.symptoms)) {
+            symptoms = data.symptoms;
+          } else if (data.extractedSymptoms && Array.isArray(data.extractedSymptoms)) {
+            symptoms = data.extractedSymptoms;
+          } else if (data.results && Array.isArray(data.results)) {
+            symptoms = data.results;
+          } else if (Array.isArray(data)) {
+            symptoms = data;
+          }
+          
+          statusDiv.innerHTML = `<p>Found ${symptoms.length} symptoms for Patient ID: ${patientId}</p>`;
+          
+          if (symptoms.length === 0) {
+            tablesDiv.innerHTML = '<div class="error">No symptoms found for this patient</div>';
+            return;
+          }
+          
+          // Sample the data to see what we have
+          console.log("Sample symptom data:", symptoms[0]);
+          
+          // Create the pivot tables
+          const symptomPivot = createPivotTable(symptoms, 'symptom_segment', 'dos_date');
+          const diagnosisPivot = createPivotTable(symptoms, 'diagnosis', 'dos_date');
+          const categoryPivot = createPivotTable(symptoms, 'diagnostic_category', 'dos_date');
+          const problemPivot = createPivotTable(symptoms, 'symp_prob', 'dos_date');
+          const hrsnPivot = createPivotTable(symptoms, 'ZCode_HRSN', 'dos_date');
+          
+          // Generate HTML for each pivot table
+          let html = '';
+          
+          // Symptom pivot table
+          html += `<div class="pivot-table">
+            <h2>1. SYMPTOM PIVOT TABLE</h2>
+            <pre>${JSON.stringify(symptomPivot, null, 2)}</pre>
+          </div>`;
+          
+          // Diagnosis pivot table
+          html += `<div class="pivot-table">
+            <h2>2. DIAGNOSIS PIVOT TABLE</h2>
+            <pre>${JSON.stringify(diagnosisPivot, null, 2)}</pre>
+          </div>`;
+          
+          // Category pivot table
+          html += `<div class="pivot-table">
+            <h2>3. DIAGNOSTIC CATEGORY PIVOT TABLE</h2>
+            <pre>${JSON.stringify(categoryPivot, null, 2)}</pre>
+          </div>`;
+          
+          // Problem pivot table
+          html += `<div class="pivot-table">
+            <h2>4. SYMPTOM PROBLEM PIVOT TABLE</h2>
+            <pre>${JSON.stringify(problemPivot, null, 2)}</pre>
+          </div>`;
+          
+          // HRSN pivot table
+          html += `<div class="pivot-table">
+            <h2>5. HRSN Z-CODE PIVOT TABLE</h2>
+            <pre>${JSON.stringify(hrsnPivot, null, 2)}</pre>
+          </div>`;
+          
+          tablesDiv.innerHTML = html;
+          
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        }
+      }
+      
+      // Add event listener to the button
+      fetchBtn.addEventListener('click', fetchData);
+      
+      // Fetch data on load
+      fetchData();
+    });
+  </script>
+</body>
+</html>

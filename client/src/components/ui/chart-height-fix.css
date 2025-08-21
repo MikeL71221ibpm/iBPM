@@ -1,0 +1,70 @@
+/* Add this CSS to fix chart heights for consistent display */
+.population-health-card-content {
+  height: 218px !important;
+  padding: 0 !important; 
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  overflow: hidden;
+  margin-top: 0.5px !important;
+  margin-bottom: 0 !important;
+}
+
+/* Force Nivo charts to have minimal top margin - target all chart SVGs */
+.population-health-card-content svg > g,
+.card-content svg > g {
+  transform: translate(60px, 0px) !important;
+}
+
+/* Make the chart container taller to show more of the bars */
+.population-health-card-content > div,
+.card-content > div {
+  height: 220px !important;
+}
+
+/* Further adjust SVG charts to maximize vertical space */
+.population-health-card-content svg,
+.card-content svg {
+  overflow: visible !important;
+  margin-top: -10px !important;
+}
+
+/* Direct fix for card content spacing */
+.card-content-fix {
+  margin-top: 2px !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.population-health-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
+
+.population-health-card-header {
+  padding: 1rem !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  min-height: 60px !important;
+}
+
+.population-health-card-header .text-gray-500 {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  display: block !important;
+  margin-top: 0.25rem !important;
+  font-weight: 500 !important;
+}
+
+.population-health-card-footer {
+  padding: 0.5rem !important;
+  padding-top: 0 !important;
+}
+
+/* Ensure the overall grid height constraint */
+.population-health-grid {
+  max-height: 720px !important;
+  grid-template-rows: auto;
+}

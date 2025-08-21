@@ -1,0 +1,22 @@
+# --- Frontend build stage ---
+FROM node:20-alpine as frontend-build
+WORKDIR /app
+COPY . .
+RUN apk add --no-cache python3 make g++ pkgconfig pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
+RUN npm install
+RUN npm run build
+
+# --- Backend build stage ---
+FROM node:20-alpine
+WORKDIR /app
+COPY . .
+RUN apk add --no-cache python3 make g++ pkgconfig pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
+RUN npm install
+# Copy frontend build output into backend's expected public directory
+COPY --from=frontend-build /app/dist/public /app/server/public
+
+# Debug: Print DATABASE_URL at runtime (add this to your server/db.ts)
+# console.log("DATABASE_URL at runtime:", process.env.DATABASE_URL);
+
+# Use the deployment-only server as the entrypoint
+CMD ["npx", "tsx", "server/deployment-only.ts"]

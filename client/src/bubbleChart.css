@@ -1,0 +1,67 @@
+/* Specific styles for bubble chart visualization */
+
+.bubble-cell {
+  background-color: white !important;
+  background-image: none !important;
+  background: white !important;
+}
+
+.bubble-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background-color: white !important;
+  background: white !important;
+  position: relative;
+}
+
+.bubble {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Fix for empty cells */
+.empty-bubble-cell, 
+td:empty {
+  background-color: transparent !important;
+  background-image: none !important;
+  background: transparent !important;
+}
+
+/* Fix for diagnosis and HRSN bubble charts */
+.diagnosis-specific-fix table td,
+.hrsn-specific-fix table td {
+  border: none !important;
+  background-color: white !important;
+  background-image: none !important;
+}
+
+/* Ensure all tables have correct border collapse style */
+table.border-collapse {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* Hide scrollbar but maintain functionality */
+.bubble-date-header::-webkit-scrollbar,
+.date-row-container::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* For consistent cell widths across all tables */
+.heatmap-table td, .bubble-cell {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+}

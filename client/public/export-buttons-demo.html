@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export Buttons Demo</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 40px;
+      background-color: #f9fafb;
+      color: #111827;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    p {
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .export-container {
+      background-color: #111827;
+      padding: 15px;
+      border: 2px solid #EAB308;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .export-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .export-title {
+      font-weight: bold;
+      color: white;
+      font-size: 18px;
+    }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .export-button {
+      color: white;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+    .csv-button {
+      background-color: #2563EB;
+    }
+    .csv-detail-button {
+      background-color: #16A34A;
+    }
+    .excel-button {
+      background-color: #9333EA;
+    }
+    .json-button {
+      background-color: #EA580C;
+    }
+    .print-button {
+      background-color: #4B5563;
+    }
+    .features {
+      border: 1px solid #E5E7EB;
+      padding: 20px;
+      border-radius: 8px;
+      background-color: white;
+      margin-top: 30px;
+    }
+    .features h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    .features ul {
+      list-style-type: disc;
+      padding-left: 24px;
+      line-height: 1.6;
+    }
+    .features li {
+      margin-bottom: 8px;
+    }
+    .features strong {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>Export Buttons Demo</h1>
+  
+  <p>Here's how the export buttons look in the expanded chart view:</p>
+  
+  <div class="export-container">
+    <div class="export-header">
+      <span class="export-title">EXPORT OPTIONS</span>
+      <div class="button-row">
+        <button class="export-button csv-button">
+          <span>📊</span>
+          <span>CSV</span>
+        </button>
+        
+        <button class="export-button csv-detail-button">
+          <span>📥</span>
+          <span>CSV Detail</span>
+        </button>
+        
+        <button class="export-button excel-button">
+          <span>📑</span>
+          <span>Excel</span>
+        </button>
+        
+        <button class="export-button json-button">
+          <span>🗄️</span>
+          <span>JSON</span>
+        </button>
+        
+        <button class="export-button print-button">
+          <span>🖨️</span>
+          <span>Print</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="features">
+    <h2>Implementation Features</h2>
+    <ul>
+      <li><strong>All 5 Export Options:</strong> CSV, CSV Detail, Excel, JSON, and Print buttons</li>
+      <li><strong>Color-Coded:</strong> Blue for CSV, Green for CSV Detail, Purple for Excel, Orange for JSON, Gray for Print</li>
+      <li><strong>Visual Design:</strong> Each button includes an icon and descriptive text</li>
+      <li><strong>Placement:</strong> Prominently positioned at the top of the expanded chart view</li>
+      <li><strong>Integration Plan:</strong> This will be added to all chart expanded views</li>
+    </ul>
+  </div>
+</body>
+</html>
