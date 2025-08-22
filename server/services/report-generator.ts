@@ -48,20 +48,47 @@ export class ReportGenerator {
 
   async generateBatchReports(
     matchResults: MatchResult[], 
-    progressCallback?: (currentIndex: number, total: number) => void
+    progressCallback?: (currentIndex: number, total: number) => Promise<void> | void,
+    useGridFormat = false
   ): Promise<BatchReportResult> {
     const reports: PatientReport[] = [];
     const validMatches = matchResults.filter(m => m.status === 'found' && m.matched);
     
-    for (let i = 0; i < validMatches.length; i++) {
-      const match = validMatches[i];
-      const report = await this.generateSinglePatientReport(match);
-      reports.push(report);
+    console.log(`🚀 PARALLEL PROCESSING: Processing ${validMatches.length} patients with optimized batching`);
+    
+    // PERMANENT PARALLEL PROCESSING: Process in batches of 5 for optimal performance
+    const BATCH_SIZE = 5;
+    const batches: MatchResult[][] = [];
+    
+    for (let i = 0; i < validMatches.length; i += BATCH_SIZE) {
+      batches.push(validMatches.slice(i, i + BATCH_SIZE));
+    }
+    
+    console.log(`⚡ BATCH CONFIGURATION: ${batches.length} batches of up to ${BATCH_SIZE} patients each (PERMANENT)`);
+    
+    let completedPatients = 0;
+    
+    // Process all batches with parallel execution within each batch
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      console.log(`📊 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} patients (PARALLEL)`);
       
-      // Call progress callback if provided
+      // PARALLEL EXECUTION: All patients in this batch process simultaneously
+      const batchPromises = batch.map(match => 
+        this.generateSinglePatientReport(match, useGridFormat)
+      );
+      
+      const batchReports = await Promise.all(batchPromises);
+      reports.push(...batchReports);
+      
+      completedPatients += batch.length;
+      
+      // Update progress for the entire batch
       if (progressCallback) {
-        progressCallback(i + 1, validMatches.length);
+        await progressCallback(completedPatients, validMatches.length);
       }
+      
+      console.log(`✅ PARALLEL BATCH ${batchIndex + 1} COMPLETE: ${completedPatients}/${validMatches.length} patients processed`);
     }
     
     // Add unmatched patients as error reports
@@ -95,18 +122,20 @@ export class ReportGenerator {
     return { reports, summary };
   }
 
-  private async generateSinglePatientReport(match: MatchResult): Promise<PatientReport> {
+  private async generateSinglePatientReport(match: MatchResult, useGridFormat = false): Promise<PatientReport> {
     try {
       const patient = match.matched;
       const patientId = patient.patient_id;
 
-      // Get all patient data for bubble charts and summary
+      // PERFORMANCE OPTIMIZATION: Get all patient data in parallel for maximum speed
       const [symptomData, bubbleChartsData, narrativeSummary, chartImages] = await Promise.all([
         this.getPatientSymptoms(patientId),
         this.generateBubbleChartsData(patientId),
-        this.generateNarrativeSummary(patientId, patient),
+        this.generateNarrativeSummary(patientId, patient, useGridFormat),
         this.generateChartImages(patientId)
       ]);
+      
+      console.log(`⚡ Patient ${patientId}: Generated ${symptomData.length} symptoms, 4 charts, summary (${useGridFormat ? 'GRID' : 'LINEAR'})`);
 
       return {
         patient: {
@@ -200,12 +229,16 @@ export class ReportGenerator {
     return bubbleData;
   }
 
-  private async generateNarrativeSummary(patientId: string, patient: any): Promise<string> {
+  private async generateNarrativeSummary(patientId: string, patient: any, useGridFormat = false): Promise<string> {
     // Use EXACT same Summary algorithm as Search section
     const symptoms = await this.getPatientSymptoms(patientId);
     
     if (symptoms.length === 0) {
       return `No clinical data available for ${patient.patient_name} (ID: ${patientId}).`;
+    }
+    
+    if (useGridFormat) {
+      return this.generateGridFormatSummary(patientId, patient, symptoms);
     }
 
     // Get all notes for contact and provider counting
@@ -466,6 +499,254 @@ Over the last two sessions they have expressed these symptoms: ${sortedLastTwo |
 
 HRSN Trends:
 ${hrsnOutput.length > 0 ? hrsnOutput.join('\n') : 'No HRSN problems documented'}`;
+  }
+
+  private async generateGridFormatSummary(patientId: string, patient: any, symptoms: any[]): Promise<string> {
+    // Get all notes for contact and provider counting
+    const notes = await this.getPatientNotes(patientId);
+    const summaryThreshold = 10; // Default threshold matching frontend
+    
+    // Calculate unique providers and date range
+    const uniqueProviders = new Set(notes.map(note => note.provider_id || 'unknown')).size;
+    const dates = notes.map(note => note.dos_date).filter(date => date).sort();
+    const firstDate = dates[0] || "N/A";
+    const lastDate = dates[dates.length - 1] || "N/A";
+    
+    // Get diagnosis information
+    const diagnosis1 = patient.diagnosis1 || '';
+    const diagnosis2 = patient.diagnosis2 || '';
+    const diagnosis3 = patient.diagnosis3 || '';
+    const diagnoses = [diagnosis1, diagnosis2, diagnosis3].filter(d => d && d !== '[Diagnosis data not available]');
+    const diagnosisText = diagnoses.length > 0 ? diagnoses.join('; ') : '[No diagnosis on record]';
+    
+    // Calculate all frequency data (same algorithms as before)
+    const { symptomFreq, symptomsByDiagnosis, symptomsByCategory } = this.calculateSymptomData(symptoms);
+    const { diagnosisSymptomCount } = this.calculateDiagnosisData(symptoms);
+    const { categoryCounts } = this.calculateCategoryData(symptoms);
+    const { hrsnProblems } = this.calculateHrsnData(symptoms);
+    const lastTwoSymptoms = await this.calculateLastTwoSessions(patientId, symptoms, notes);
+    
+    // Build grid-based summary
+    return `Summary:
+
+The person has had ${notes.length} contacts with ${uniqueProviders} number of staff submitting notes from ${firstDate} through ${lastDate}.
+
+The diagnosis on the record is: ${diagnosisText}
+
+The person has expressed
+
+${this.formatGridSection('Symptom Trends', symptomFreq, 'symptoms', summaryThreshold, { 
+  enableGrouping: true, 
+  groupingOptions: { byDiagnosis: symptomsByDiagnosis, byCategory: symptomsByCategory }
+})}
+
+${this.formatGridSection('Diagnosis Trends', diagnosisSymptomCount, 'diagnoses', summaryThreshold)}
+
+${this.formatGridSection('Diagnostic Category Trends', categoryCounts, 'categories', summaryThreshold)}
+
+Over the last two sessions they have expressed these symptoms: ${lastTwoSymptoms || 'none documented'}.
+
+${this.formatGridSection('HRSN Trends', hrsnProblems, 'HRSN problems', summaryThreshold)}`;
+  }
+
+  private calculateSymptomData(symptoms: any[]) {
+    const symptomFreq: Record<string, number> = {};
+    const symptomsByDiagnosis: Record<string, string[]> = {};
+    const symptomsByCategory: Record<string, string[]> = {};
+    
+    symptoms.forEach(item => {
+      const symptom = item.symptom_segment || '';
+      const diagnosis = item.diagnosis || '';
+      const category = item.diagnostic_category || '';
+      
+      if (symptom && symptom.trim()) {
+        symptomFreq[symptom] = (symptomFreq[symptom] || 0) + 1;
+        
+        // Group by diagnosis
+        if (diagnosis && diagnosis.trim()) {
+          if (!symptomsByDiagnosis[diagnosis]) symptomsByDiagnosis[diagnosis] = [];
+          if (!symptomsByDiagnosis[diagnosis].includes(symptom)) {
+            symptomsByDiagnosis[diagnosis].push(symptom);
+          }
+        }
+        
+        // Group by category
+        if (category && category.trim()) {
+          if (!symptomsByCategory[category]) symptomsByCategory[category] = [];
+          if (!symptomsByCategory[category].includes(symptom)) {
+            symptomsByCategory[category].push(symptom);
+          }
+        }
+      }
+    });
+    
+    return { symptomFreq, symptomsByDiagnosis, symptomsByCategory };
+  }
+
+  private calculateDiagnosisData(symptoms: any[]) {
+    const diagnosisSymptomCount: Record<string, number> = {};
+    symptoms.forEach(item => {
+      const diagnosis = item.diagnosis || '';
+      if (diagnosis && diagnosis.trim()) {
+        diagnosisSymptomCount[diagnosis] = (diagnosisSymptomCount[diagnosis] || 0) + 1;
+      }
+    });
+    return { diagnosisSymptomCount };
+  }
+
+  private calculateCategoryData(symptoms: any[]) {
+    const categoryDiagnosisCount: Record<string, Set<string>> = {};
+    symptoms.forEach(item => {
+      const category = item.diagnostic_category || '';
+      const diagnosis = item.diagnosis || '';
+      if (category && category.trim() && diagnosis && diagnosis.trim()) {
+        if (!categoryDiagnosisCount[category]) {
+          categoryDiagnosisCount[category] = new Set();
+        }
+        categoryDiagnosisCount[category].add(diagnosis);
+      }
+    });
+    
+    const categoryCounts: Record<string, number> = {};
+    Object.entries(categoryDiagnosisCount).forEach(([category, diagnosisSet]) => {
+      categoryCounts[category] = diagnosisSet.size;
+    });
+    
+    return { categoryCounts };
+  }
+
+  private calculateHrsnData(symptoms: any[]) {
+    const hrsnProblems: Record<string, number> = {};
+    symptoms.forEach(item => {
+      if (item.symp_prob === "Problem") {
+        const symptom = item.symptom_segment || '';
+        if (symptom && symptom.trim()) {
+          hrsnProblems[symptom] = (hrsnProblems[symptom] || 0) + 1;
+        }
+      }
+    });
+    return { hrsnProblems };
+  }
+
+  private async calculateLastTwoSessions(patientId: string, symptoms: any[], notes: any[]): Promise<string> {
+    const sortedNotes = [...notes].sort((a, b) => {
+      const dateA = new Date(a.dos_date || 0);
+      const dateB = new Date(b.dos_date || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    const lastTwoSessions = sortedNotes.slice(0, 2);
+    const lastTwoDates = lastTwoSessions.map(note => note.dos_date);
+    
+    const lastTwoSymptoms: Record<string, number> = {};
+    symptoms.forEach(item => {
+      const itemPatientId = String(item.patient_id || '');
+      const selectedPatientId = String(patientId || '');
+      const itemDate = item.dos_date;
+      
+      const dateMatches = lastTwoDates.some(lastDate => {
+        return itemDate === lastDate || 
+               (itemDate && lastDate && new Date(itemDate).getTime() === new Date(lastDate).getTime());
+      });
+      
+      if (itemPatientId === selectedPatientId && dateMatches) {
+        const symptom = item.symptom_segment || '';
+        if (symptom && symptom.trim()) {
+          lastTwoSymptoms[symptom] = (lastTwoSymptoms[symptom] || 0) + 1;
+        }
+      }
+    });
+    
+    return Object.entries(lastTwoSymptoms)
+      .sort((a, b) => {
+        if (b[1] !== a[1]) return b[1] - a[1];
+        return a[0].localeCompare(b[0]);
+      })
+      .map(([name, count]) => `${name} (${count})`)
+      .join(', ');
+  }
+
+  private formatGridSection(
+    title: string, 
+    data: Record<string, number>, 
+    itemType: string, 
+    threshold: number,
+    options?: { enableGrouping?: boolean; groupingOptions?: any }
+  ): string {
+    const maxFreq = Math.max(...Object.values(data), 0);
+    const output = [];
+    
+    output.push(`${title}:`);
+    
+    // Process each frequency level
+    for (let i = Math.max(maxFreq, threshold); i >= 1; i--) {
+      let currentItems: string[] = [];
+      
+      if (i === threshold) {
+        currentItems = Object.entries(data)
+          .filter(([_, freq]) => freq >= threshold)
+          .map(([name]) => name)
+          .sort();
+      } else if (i < threshold) {
+        currentItems = Object.entries(data)
+          .filter(([_, freq]) => freq === i)
+          .map(([name]) => name)
+          .sort();
+      }
+      
+      if (currentItems.length > 0) {
+        const displayText = this.getFrequencyDisplayText(i, threshold, itemType);
+        
+        if (i === 1 && currentItems.length > 0) {
+          // Frequency 1: Show count + collapsible format
+          output.push(`- ${currentItems.length} ${itemType} (1 time each) [Collapsible - Click to expand]`);
+          
+          if (options?.enableGrouping && options.groupingOptions) {
+            // Add grouping hint for symptoms
+            output.push(`  [When expanded: Group by Diagnosis OR Diagnostic Category]`);
+          }
+          
+          // Show collapsed preview (first few items)
+          const preview = currentItems.slice(0, 3).join(', ');
+          const remaining = currentItems.length > 3 ? `... and ${currentItems.length - 3} more` : '';
+          output.push(`  Preview: ${preview}${remaining ? ' ' + remaining : ''}`);
+          
+        } else {
+          // Higher frequencies: Show in 3x3 grid format
+          output.push(`- ${itemType} ${displayText}:`);
+          output.push(this.formatAs3x3Grid(currentItems));
+        }
+      }
+    }
+    
+    if (output.length === 1) {
+      output.push(`No ${itemType} documented`);
+    }
+    
+    return output.join('\n');
+  }
+
+  private getFrequencyDisplayText(frequency: number, threshold: number, itemType: string): string {
+    if (frequency === threshold && threshold > 1) {
+      return `${threshold} times or more`;
+    } else {
+      const timesText = frequency === 1 ? 'time' : 'times';
+      return `${frequency} ${timesText}`;
+    }
+  }
+
+  private formatAs3x3Grid(items: string[]): string {
+    if (items.length === 0) return '  [No items]';
+    
+    const grid = [];
+    for (let i = 0; i < items.length; i += 3) {
+      const row = items.slice(i, i + 3);
+      // Format as boxes with consistent width
+      const paddedRow = row.map(item => `[${item}]`).join('  ');
+      grid.push(`  ${paddedRow}`);
+    }
+    
+    return grid.join('\n');
   }
 
   private calculateDateRange(symptoms: any[]): string {

@@ -862,6 +862,7 @@ export default function Home() {
   const [showNotes, setShowNotes] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryThreshold, setSummaryThreshold] = useState(10); // Configurable threshold for "X or more" grouping
+  const [useGridFormat, setUseGridFormat] = useState(false); // Toggle for grid vs linear summary format
   const [extractedSymptoms, setExtractedSymptoms] = useState<any[]>([]);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
@@ -1815,6 +1816,17 @@ export default function Home() {
                   >
                     {showSummary ? "Hide Summary" : "View Summary"}
                   </Button>
+                  {showSummary && (
+                    <Button 
+                      variant={useGridFormat ? "default" : "outline"}
+                      size="sm"
+                      className="flex items-center gap-1"
+                      onClick={() => setUseGridFormat(!useGridFormat)}
+                    >
+                      <LayoutGrid className="h-3 w-3" />
+                      {useGridFormat ? "Narrative" : "Grid"}
+                    </Button>
+                  )}
                 </div>
               )}
               <Button 
@@ -1837,380 +1849,980 @@ export default function Home() {
             {showSummary && patientNotes.length > 0 && (
               <div className="mb-3">
                 <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
-                  <div className="text-sm leading-relaxed">
-                    <span className="font-bold">Summary:</span>
-                    <div className="mt-1">
-                      The person has had <span className="font-medium">{patientNotes.length}</span> contacts with{' '}
-                      <span className="font-medium">{(() => {
-                        // Count unique staff/providers
-                        const uniqueProviders = new Set(patientNotes.map(note => note.provider_id || note.providerId || 'unknown')).size;
-                        return uniqueProviders;
-                      })()}</span> number of staff submitting notes from{' '}
-                      <span className="font-medium">{(() => {
-                        // Use actual date range from patient notes if no firstDate is set
-                        if (useAllDates) {
-                          // Try to get from selectedPatient first, then calculate from notes
-                          if (selectedPatient.firstDate) {
-                            return selectedPatient.firstDate;
-                          } else if (patientNotes.length > 0) {
-                            // Calculate from available notes
-                            const dates = patientNotes
-                              .map(note => note.dos_date || note.dosDate)
-                              .filter(date => date)
-                              .sort();
-                            return dates[0] || "N/A";
-                          }
-                          return "N/A";
-                        } else {
-                          return startDate || "N/A";
-                        }
-                      })()}</span> through{' '}
-                      <span className="font-medium">{(() => {
-                        if (useAllDates) {
-                          // Try to get from selectedPatient first, then calculate from notes
-                          if (selectedPatient.lastDate) {
-                            return selectedPatient.lastDate;
-                          } else if (patientNotes.length > 0) {
-                            // Calculate from available notes
-                            const dates = patientNotes
-                              .map(note => note.dos_date || note.dosDate)
-                              .filter(date => date)
-                              .sort();
-                            return dates[dates.length - 1] || "N/A";
-                          }
-                          return "N/A";
-                        } else {
-                          return endDate || "N/A";
-                        }
-                      })()}</span>.
-                    </div>
+                  {(() => {
+                    // Helper function to format dates from YYYY-MM-DD to MM-DD-YYYY
+                    const formatDate = (dateStr: string) => {
+                      if (!dateStr || dateStr === "N/A") return dateStr;
+                      
+                      // Check if it's already in YYYY-MM-DD format
+                      const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      if (match) {
+                        const [, year, month, day] = match;
+                        return `${month}-${day}-${year}`;
+                      }
+                      
+                      // If not in expected format, return as-is
+                      return dateStr;
+                    };
                     
-                    <div className="mt-2">
-                      The diagnosis on the record is:{' '}
-                      <span className="font-medium">
-                        {(() => {
-                          // TODO: Pull from patient diagnosis fields once added to schema
-                          const diagnosis1 = selectedPatient.diagnosis1 || '[Diagnosis data not available]';
-                          const diagnosis2 = selectedPatient.diagnosis2 || '';
-                          const diagnosis3 = selectedPatient.diagnosis3 || '';
-                          const diagnoses = [diagnosis1, diagnosis2, diagnosis3].filter(d => d && d !== '[Diagnosis data not available]');
-                          return diagnoses.length > 0 ? diagnoses.join('; ') : '[No diagnosis on record]';
-                        })()}
-                      </span>
-                    </div>
+                    // Common data calculations for both formats
+                    const uniqueProviders = new Set(patientNotes.map(note => note.provider_id || note.providerId || 'unknown')).size;
                     
-                    <div className="mt-3">
-                      <div className="font-semibold">The person has expressed</div>
+                    const firstDate = (() => {
+                      if (useAllDates) {
+                        if (selectedPatient.firstDate) {
+                          return selectedPatient.firstDate;
+                        } else if (patientNotes.length > 0) {
+                          const dates = patientNotes
+                            .map(note => note.dos_date || note.dosDate)
+                            .filter(date => date)
+                            .sort();
+                          return dates[0] || "N/A";
+                        }
+                        return "N/A";
+                      } else {
+                        return startDate || "N/A";
+                      }
+                    })();
+                    
+                    const lastDate = (() => {
+                      if (useAllDates) {
+                        if (selectedPatient.lastDate) {
+                          return selectedPatient.lastDate;
+                        } else if (patientNotes.length > 0) {
+                          const dates = patientNotes
+                            .map(note => note.dos_date || note.dosDate)
+                            .filter(date => date)
+                            .sort();
+                          return dates[dates.length - 1] || "N/A";
+                        }
+                        return "N/A";
+                      } else {
+                        return endDate || "N/A";
+                      }
+                    })();
+                    
+                    const diagnoses = (() => {
+                      const diagnosis1 = selectedPatient.diagnosis1 || '[Diagnosis data not available]';
+                      const diagnosis2 = selectedPatient.diagnosis2 || '';
+                      const diagnosis3 = selectedPatient.diagnosis3 || '';
+                      const validDiagnoses = [diagnosis1, diagnosis2, diagnosis3].filter(d => d && d !== '[Diagnosis data not available]');
+                      return validDiagnoses.length > 0 ? validDiagnoses.join('; ') : '[No diagnosis on record]';
+                    })();
+
+                    // Calculate symptom frequencies
+                    const symptomFreq: Record<string, number> = {};
+                    extractedSymptoms.forEach(item => {
+                      const symptom = item.symptom_segment || item.symptom || item.text || '';
+                      if (symptom && symptom.trim()) {
+                        symptomFreq[symptom] = (symptomFreq[symptom] || 0) + 1;
+                      }
+                    });
+
+                    // Calculate diagnosis trends
+                    const diagnosisSymptomCount: Record<string, number> = {};
+                    extractedSymptoms.forEach(item => {
+                      const diagnosis = item.diagnosis || '';
+                      if (diagnosis && diagnosis.trim()) {
+                        diagnosisSymptomCount[diagnosis] = (diagnosisSymptomCount[diagnosis] || 0) + 1;
+                      }
+                    });
+
+                    // Calculate HRSN problems
+                    const hrsnProblems: Record<string, number> = {};
+                    extractedSymptoms.forEach(item => {
+                      if (item.symp_prob === "Problem") {
+                        const symptom = item.symptom_segment || item.symptom || item.text || '';
+                        if (symptom && symptom.trim()) {
+                          hrsnProblems[symptom] = (hrsnProblems[symptom] || 0) + 1;
+                        }
+                      }
+                    });
+
+                    // Calculate last two sessions symptoms
+                    const sortedNotes = [...patientNotes].sort((a, b) => {
+                      const dateA = new Date(a.dos_date || a.dosDate || 0);
+                      const dateB = new Date(b.dos_date || b.dosDate || 0);
+                      return dateB.getTime() - dateA.getTime();
+                    });
+                    const lastTwoSessions = sortedNotes.slice(0, 2);
+                    const lastTwoDates = lastTwoSessions.map(note => note.dos_date || note.dosDate);
+                    const lastTwoSymptoms: Record<string, number> = {};
+                    
+                    extractedSymptoms.forEach(item => {
+                      const itemPatientId = String(item.patient_id || '');
+                      const selectedPatientId = String(selectedPatient.patient_id || selectedPatient.patientId || '');
+                      const itemDate = item.dos_date || item.dosDate;
                       
-                      <div className="mt-2">
-                        <div className="font-semibold">Symptom Trends:</div>
-                        {(() => {
-                          // Calculate symptom frequencies from actual data
-                          const symptomFreq: Record<string, number> = {};
-                          
-                          extractedSymptoms.forEach(item => {
-                            const symptom = item.symptom_segment || item.symptom || item.text || '';
-                            if (symptom && symptom.trim()) {
-                              symptomFreq[symptom] = (symptomFreq[symptom] || 0) + 1;
-                            }
-                          });
-                          
-                          // Group symptoms by frequency using configurable threshold
-                          const frequencyGroups: Record<number, string[]> = {};
-                          const maxFreq = Math.max(...Object.values(symptomFreq), 0);
-                          
-                          for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
-                            if (i === summaryThreshold) {
-                              // Group for threshold and above
-                              frequencyGroups[i] = Object.entries(symptomFreq)
-                                .filter(([_, freq]) => freq >= summaryThreshold)
-                                .map(([name]) => name)
-                                .sort();
-                            } else if (i < summaryThreshold) {
-                              // Individual counts below threshold
-                              frequencyGroups[i] = Object.entries(symptomFreq)
-                                .filter(([_, freq]) => freq === i)
-                                .map(([name]) => name)
-                                .sort();
-                            }
-                          }
-                          
-                          // Build output only for frequencies that have symptoms
-                          const output = [];
-                          for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
-                            if (frequencyGroups[i] && frequencyGroups[i].length > 0) {
-                              let displayText;
-                              if (i === summaryThreshold && summaryThreshold > 1) {
-                                displayText = `${summaryThreshold} times or more`;
-                              } else {
-                                const timesText = i === 1 ? 'time' : 'times';
-                                displayText = `${i} ${timesText}`;
-                              }
-                              
-                              output.push(
-                                <div key={i} className="ml-2">
-                                  - these symptoms {displayText} over the timeperiod{' '}
-                                  <span className="font-medium">[{frequencyGroups[i].join(', ')}]</span>;
-                                </div>
-                              );
-                            }
-                          }
-                          
-                          return output.length > 0 ? output : <div className="ml-2 text-gray-500">No symptoms recorded</div>;
-                        })()}
-                      </div>
+                      const dateMatches = lastTwoDates.some(lastDate => {
+                        return itemDate === lastDate || 
+                               (itemDate && lastDate && new Date(itemDate).getTime() === new Date(lastDate).getTime());
+                      });
                       
-                      <div className="mt-3">
-                        <div className="font-semibold">Diagnosis Trends:</div>
-                        {(() => {
-                          // Count symptoms associated with each diagnosis
-                          const diagnosisSymptomCount: Record<string, number> = {};
+                      if (itemPatientId === selectedPatientId && dateMatches) {
+                        const symptom = item.symptom_segment || item.symptom || item.text || '';
+                        if (symptom && symptom.trim()) {
+                          lastTwoSymptoms[symptom] = (lastTwoSymptoms[symptom] || 0) + 1;
+                        }
+                      }
+                    });
+
+                    const sortedLastTwo = Object.entries(lastTwoSymptoms)
+                      .sort((a, b) => {
+                        if (b[1] !== a[1]) return b[1] - a[1];
+                        return a[0].localeCompare(b[0]);
+                      })
+                      .map(([name, count]) => `${name} (${count})`)
+                      .join(', ');
+
+                    if (!useGridFormat) {
+                      // Linear Format (Original) - Updated with exact frequencies
+                      return (
+                        <div className="text-sm leading-relaxed">
+                          <span className="font-bold">Summary (Narrative Format):</span>
+                          <div className="mt-1">
+                            The person has had <span className="font-medium">{patientNotes.length}</span> contacts with{' '}
+                            <span className="font-medium">{uniqueProviders}</span> number of staff submitting notes from{' '}
+                            <span className="font-medium">{formatDate(firstDate)}</span> through{' '}
+                            <span className="font-medium">{formatDate(lastDate)}</span>.
+                          </div>
                           
-                          extractedSymptoms.forEach(item => {
-                            const diagnosis = item.diagnosis || '';
-                            if (diagnosis && diagnosis.trim()) {
-                              diagnosisSymptomCount[diagnosis] = (diagnosisSymptomCount[diagnosis] || 0) + 1;
-                            }
-                          });
+                          <div className="mt-2">
+                            The diagnosis on the record is:{' '}
+                            <span className="font-medium">{diagnoses}</span>
+                          </div>
                           
-                          // Group diagnoses by symptom count using configurable threshold
-                          const countGroups: Record<number, string[]> = {};
-                          const maxCount = Math.max(...Object.values(diagnosisSymptomCount), 0);
-                          
-                          for (let i = Math.max(maxCount, summaryThreshold); i >= 1; i--) {
-                            if (i === summaryThreshold) {
-                              // Group for threshold and above
-                              countGroups[i] = Object.entries(diagnosisSymptomCount)
-                                .filter(([_, count]) => count >= summaryThreshold)
-                                .map(([name]) => name)
-                                .sort();
-                            } else if (i < summaryThreshold) {
-                              // Individual counts below threshold
-                              countGroups[i] = Object.entries(diagnosisSymptomCount)
-                                .filter(([_, count]) => count === i)
-                                .map(([name]) => name)
-                                .sort();
-                            }
-                          }
-                          
-                          // Build output only for counts that have diagnoses (> 0)
-                          const output = [];
-                          for (let i = Math.max(maxCount, summaryThreshold); i >= 1; i--) {
-                            if (countGroups[i] && countGroups[i].length > 0) {
-                              let displayText;
-                              if (i === summaryThreshold && summaryThreshold > 1) {
-                                const symptomText = summaryThreshold === 1 ? 'symptom' : 'symptoms';
-                                displayText = `${summaryThreshold} ${symptomText} or more`;
-                              } else {
-                                const symptomText = i === 1 ? 'symptom' : 'symptoms';
-                                displayText = `${i} ${symptomText}`;
-                              }
-                              
-                              output.push(
-                                <div key={i} className="ml-2">
-                                  - these diagnoses had {displayText} associated with them over the timeperiod{' '}
-                                  <span className="font-medium">[{countGroups[i].join(', ')}]</span>
-                                </div>
-                              );
-                            }
-                          }
-                          
-                          return output.length > 0 ? output : <div className="ml-2 text-gray-500">No diagnosis data available</div>;
-                        })()}
-                      </div>
-                      
-                      <div className="mt-3">
-                        <div className="font-semibold">Diagnostic Category Trends:</div>
-                        {(() => {
-                          // Count diagnoses associated with each diagnostic category
-                          const categoryDiagnosisCount: Record<string, Set<string>> = {};
-                          
-                          extractedSymptoms.forEach(item => {
-                            const category = item.diagnostic_category || '';
-                            const diagnosis = item.diagnosis || '';
-                            if (category && category.trim() && diagnosis && diagnosis.trim()) {
-                              if (!categoryDiagnosisCount[category]) {
-                                categoryDiagnosisCount[category] = new Set();
-                              }
-                              categoryDiagnosisCount[category].add(diagnosis);
-                            }
-                          });
-                          
-                          // Convert sets to counts
-                          const categoryCounts: Record<string, number> = {};
-                          Object.entries(categoryDiagnosisCount).forEach(([category, diagnosisSet]) => {
-                            categoryCounts[category] = diagnosisSet.size;
-                          });
-                          
-                          // Group categories by diagnosis count using configurable threshold
-                          const countGroups: Record<number, string[]> = {};
-                          const maxCount = Math.max(...Object.values(categoryCounts), 0);
-                          
-                          for (let i = Math.max(maxCount, summaryThreshold); i >= 1; i--) {
-                            if (i === summaryThreshold) {
-                              // Group for threshold and above
-                              countGroups[i] = Object.entries(categoryCounts)
-                                .filter(([_, count]) => count >= summaryThreshold)
-                                .map(([name]) => name)
-                                .sort();
-                            } else if (i < summaryThreshold) {
-                              // Individual counts below threshold
-                              countGroups[i] = Object.entries(categoryCounts)
-                                .filter(([_, count]) => count === i)
-                                .map(([name]) => name)
-                                .sort();
-                            }
-                          }
-                          
-                          // Build output only for counts that have categories (> 0)
-                          const output = [];
-                          for (let i = Math.max(maxCount, summaryThreshold); i >= 1; i--) {
-                            if (countGroups[i] && countGroups[i].length > 0) {
-                              let displayText;
-                              if (i === summaryThreshold && summaryThreshold > 1) {
-                                const diagnosisText = summaryThreshold === 1 ? 'diagnosis' : 'diagnoses';
-                                displayText = `${summaryThreshold} ${diagnosisText} or more`;
-                              } else {
-                                const diagnosisText = i === 1 ? 'diagnosis' : 'diagnoses';
-                                displayText = `${i} ${diagnosisText}`;
-                              }
-                              
-                              output.push(
-                                <div key={i} className="ml-2">
-                                  - these diagnostic categories had {displayText} associated with them over the timeperiod{' '}
-                                  <span className="font-medium">[{countGroups[i].join(', ')}]</span>
-                                </div>
-                              );
-                            }
-                          }
-                          
-                          return output.length > 0 ? output : <div className="ml-2 text-gray-500">No diagnostic category data available</div>;
-                        })()}
-                      </div>
-                    </div>
-                      
-                    <div className="mt-3">
-                        {(() => {
-                          // Get symptoms from last two sessions - fix the logic
-                          const sortedNotes = [...patientNotes].sort((a, b) => {
-                            const dateA = new Date(a.dos_date || a.dosDate || 0);
-                            const dateB = new Date(b.dos_date || b.dosDate || 0);
-                            return dateB.getTime() - dateA.getTime();
-                          });
-                          
-                          const lastTwoSessions = sortedNotes.slice(0, 2);
-                          const lastTwoDates = lastTwoSessions.map(note => note.dos_date || note.dosDate);
-                          
-                          // Get symptoms from last two sessions - enhanced matching
-                          const lastTwoSymptoms: Record<string, number> = {};
-                          
-                          console.log('Last Two Debug - Patient Notes:', patientNotes.length);
-                          console.log('Last Two Debug - Last Two Dates:', lastTwoDates);
-                          console.log('Last Two Debug - Extracted Symptoms:', extractedSymptoms.length);
-                          console.log('Last Two Debug - Selected Patient ID:', selectedPatient.patient_id || selectedPatient.patientId);
-                          
-                          extractedSymptoms.forEach(item => {
-                            // Check if this symptom is from the selected patient and from one of the last two session dates
-                            const itemPatientId = String(item.patient_id || '');
-                            const selectedPatientId = String(selectedPatient.patient_id || selectedPatient.patientId || '');
-                            const itemDate = item.dos_date || item.dosDate;
+                          <div className="mt-3">
+                            <div className="font-semibold">The person has expressed</div>
                             
-                            // More flexible date matching - also check if dates are properly formatted
-                            const dateMatches = lastTwoDates.some(lastDate => {
-                              return itemDate === lastDate || 
-                                     (itemDate && lastDate && new Date(itemDate).getTime() === new Date(lastDate).getTime());
-                            });
+                            <div className="mt-2">
+                              <div className="font-semibold border-b-2 border-black inline-block">Symptom Trends:</div>
+                              {(() => {
+                                // Group symptoms by frequency using configurable threshold
+                                const frequencyGroups: Record<number, string[]> = {};
+                                const maxFreq = Math.max(...Object.values(symptomFreq), 0);
+                                
+                                for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
+                                  if (i === summaryThreshold) {
+                                    // Group for threshold and above
+                                    frequencyGroups[i] = Object.entries(symptomFreq)
+                                      .filter(([_, freq]) => freq >= summaryThreshold)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  } else if (i < summaryThreshold) {
+                                    // Individual counts below threshold
+                                    frequencyGroups[i] = Object.entries(symptomFreq)
+                                      .filter(([_, freq]) => freq === i)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  }
+                                }
+                                
+                                // Build output only for frequencies that have symptoms
+                                const output = [];
+                                for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
+                                  if (frequencyGroups[i] && frequencyGroups[i].length > 0) {
+                                    let displayText;
+                                    if (i === summaryThreshold && summaryThreshold > 1) {
+                                      displayText = `${summaryThreshold} times or more`;
+                                    } else {
+                                      const timesText = i === 1 ? 'time' : 'times';
+                                      displayText = `${i} ${timesText}`;
+                                    }
+                                    
+                                    output.push(
+                                      <div key={i} className="ml-2">
+                                        - these symptoms {displayText} over the timeperiod{' '}
+                                        <span className="font-medium">[{frequencyGroups[i].join(', ')}]</span>;
+                                      </div>
+                                    );
+                                  }
+                                }
+                                
+                                return output.length > 0 ? output : <div className="ml-2 text-gray-500">No symptoms recorded</div>;
+                              })()}
+                            </div>
                             
-                            if (itemPatientId === selectedPatientId && dateMatches) {
-                              const symptom = item.symptom_segment || item.symptom || item.text || '';
-                              if (symptom && symptom.trim()) {
-                                lastTwoSymptoms[symptom] = (lastTwoSymptoms[symptom] || 0) + 1;
-                                console.log('Last Two Debug - Found symptom:', symptom, 'on date:', itemDate);
-                              }
-                            }
-                          });
-                          
-                          console.log('Last Two Debug - Final symptoms found:', Object.keys(lastTwoSymptoms).length);
-                          
-                          // Sort by frequency then alphabetically
-                          const sortedLastTwo = Object.entries(lastTwoSymptoms)
-                            .sort((a, b) => {
-                              if (b[1] !== a[1]) return b[1] - a[1];
-                              return a[0].localeCompare(b[0]);
-                            })
-                            .map(([name, count]) => `${name} (${count})`)
-                            .join(', ');
-                          
-                          return (
-                            <>
+                            <div className="mt-3">
+                              <div className="font-semibold border-b-2 border-black inline-block">Diagnosis Trends:</div>
+                              {(() => {
+                                // Group diagnoses by symptom count using configurable threshold
+                                const countGroups: Record<number, string[]> = {};
+                                const maxCount = Math.max(...Object.values(diagnosisSymptomCount), 0);
+                                
+                                for (let i = Math.max(maxCount, summaryThreshold); i >= 1; i--) {
+                                  if (i === summaryThreshold) {
+                                    // Group for threshold and above
+                                    countGroups[i] = Object.entries(diagnosisSymptomCount)
+                                      .filter(([_, count]) => count >= summaryThreshold)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  } else if (i < summaryThreshold) {
+                                    // Individual counts below threshold
+                                    countGroups[i] = Object.entries(diagnosisSymptomCount)
+                                      .filter(([_, count]) => count === i)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  }
+                                }
+                                
+                                // Build output only for counts that have diagnoses (> 0)
+                                const output = [];
+                                for (let i = Math.max(maxCount, summaryThreshold); i >= 1; i--) {
+                                  if (countGroups[i] && countGroups[i].length > 0) {
+                                    let displayText;
+                                    if (i === summaryThreshold && summaryThreshold > 1) {
+                                      const symptomText = summaryThreshold === 1 ? 'symptom' : 'symptoms';
+                                      displayText = `${summaryThreshold} ${symptomText} or more`;
+                                    } else {
+                                      const symptomText = i === 1 ? 'symptom' : 'symptoms';
+                                      displayText = `${i} ${symptomText}`;
+                                    }
+                                    
+                                    output.push(
+                                      <div key={i} className="ml-2">
+                                        - these diagnoses had {displayText} associated with them over the timeperiod{' '}
+                                        <span className="font-medium">[{countGroups[i].join(', ')}]</span>
+                                      </div>
+                                    );
+                                  }
+                                }
+                                
+                                return output.length > 0 ? output : <div className="ml-2 text-gray-500">No diagnosis data available</div>;
+                              })()}
+                            </div>
+                            
+                            <div className="mt-3">
+                              <div className="font-semibold border-b-2 border-black inline-block">Diagnostic Category Trends:</div>
+                              {(() => {
+                                // Count diagnoses associated with each diagnostic category
+                                const categoryDiagnosisCount: Record<string, Set<string>> = {};
+                                
+                                extractedSymptoms.forEach(item => {
+                                  const category = item.diagnostic_category || '';
+                                  const diagnosis = item.diagnosis || '';
+                                  if (category && category.trim() && diagnosis && diagnosis.trim()) {
+                                    if (!categoryDiagnosisCount[category]) {
+                                      categoryDiagnosisCount[category] = new Set();
+                                    }
+                                    categoryDiagnosisCount[category].add(diagnosis);
+                                  }
+                                });
+                                
+                                // Convert sets to counts
+                                const categoryCounts: Record<string, number> = {};
+                                Object.entries(categoryDiagnosisCount).forEach(([category, diagnosisSet]) => {
+                                  categoryCounts[category] = diagnosisSet.size;
+                                });
+                                
+                                // Group categories by diagnosis count using configurable threshold
+                                const countGroups: Record<number, string[]> = {};
+                                const maxCount = Math.max(...Object.values(categoryCounts), 0);
+                                
+                                for (let i = Math.max(maxCount, summaryThreshold); i >= 1; i--) {
+                                  if (i === summaryThreshold) {
+                                    // Group for threshold and above
+                                    countGroups[i] = Object.entries(categoryCounts)
+                                      .filter(([_, count]) => count >= summaryThreshold)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  } else if (i < summaryThreshold) {
+                                    // Individual counts below threshold
+                                    countGroups[i] = Object.entries(categoryCounts)
+                                      .filter(([_, count]) => count === i)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  }
+                                }
+                                
+                                // Build output only for counts that have categories (> 0)
+                                const output = [];
+                                for (let i = Math.max(maxCount, summaryThreshold); i >= 1; i--) {
+                                  if (countGroups[i] && countGroups[i].length > 0) {
+                                    let displayText;
+                                    if (i === summaryThreshold && summaryThreshold > 1) {
+                                      const diagnosisText = summaryThreshold === 1 ? 'diagnosis' : 'diagnoses';
+                                      displayText = `${summaryThreshold} ${diagnosisText} or more`;
+                                    } else {
+                                      const diagnosisText = i === 1 ? 'diagnosis' : 'diagnoses';
+                                      displayText = `${i} ${diagnosisText}`;
+                                    }
+                                    
+                                    output.push(
+                                      <div key={i} className="ml-2">
+                                        - these diagnostic categories had {displayText} associated with them over the timeperiod{' '}
+                                        <span className="font-medium">[{countGroups[i].join(', ')}]</span>
+                                      </div>
+                                    );
+                                  }
+                                }
+                                
+                                return output.length > 0 ? output : <div className="ml-2 text-gray-500">No diagnostic category data available</div>;
+                              })()}
+                            </div>
+                            
+                            <div className="mt-3">
                               Over the last two sessions they have expressed these symptoms:{' '}
                               <span className="font-medium">{sortedLastTwo || 'none documented'}</span>.
-                            </>
-                          );
-                        })()}
-                    </div>
-                    
-                    <div className="mt-3">
-                      <div className="font-semibold">HRSN Trends:</div>
-                      {(() => {
-                        // Filter HRSNs where symp_prob = "Problem" and count frequencies
-                        const hrsnProblems: Record<string, number> = {};
-                        
-                        extractedSymptoms.forEach(item => {
-                          // Check if this is an HRSN problem
-                          if (item.symp_prob === "Problem") {
-                            const symptom = item.symptom_segment || item.symptom || item.text || '';
-                            if (symptom && symptom.trim()) {
-                              hrsnProblems[symptom] = (hrsnProblems[symptom] || 0) + 1;
-                            }
-                          }
-                        });
-                        
-                        // Group HRSNs by frequency using configurable threshold (same as symptoms)
-                        const frequencyGroups: Record<number, string[]> = {};
-                        const maxFreq = Math.max(...Object.values(hrsnProblems), 0);
-                        
-                        for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
-                          if (i === summaryThreshold) {
-                            // Group for threshold and above
-                            frequencyGroups[i] = Object.entries(hrsnProblems)
-                              .filter(([_, freq]) => freq >= summaryThreshold)
-                              .map(([name]) => name)
-                              .sort();
-                          } else if (i < summaryThreshold) {
-                            // Individual counts below threshold
-                            frequencyGroups[i] = Object.entries(hrsnProblems)
-                              .filter(([_, freq]) => freq === i)
-                              .map(([name]) => name)
-                              .sort();
-                          }
-                        }
-                        
-                        // Build output only for frequencies that have HRSN problems (> 0)
-                        const output = [];
-                        for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
-                          if (frequencyGroups[i] && frequencyGroups[i].length > 0) {
-                            let displayText;
-                            if (i === summaryThreshold && summaryThreshold > 1) {
-                              displayText = `${summaryThreshold} times or more`;
-                            } else {
-                              const timesText = i === 1 ? 'time' : 'times';
-                              displayText = `${i} ${timesText}`;
-                            }
+                            </div>
                             
-                            output.push(
-                              <div key={i} className="ml-2">
-                                - these HRSN problems were expressed {displayText} over the timeperiod{' '}
-                                <span className="font-medium">[{frequencyGroups[i].join(', ')}]</span>;
+                            <div className="mt-3">
+                              <div className="font-semibold border-b-2 border-black inline-block">HRSN Trends:</div>
+                              {(() => {
+                                // Filter HRSNs where symp_prob = "Problem" and count frequencies
+                                const hrsnProblems: Record<string, number> = {};
+                                
+                                extractedSymptoms.forEach(item => {
+                                  // Check if this is an HRSN problem
+                                  if (item.symp_prob === "Problem") {
+                                    const symptom = item.symptom_segment || item.symptom || item.text || '';
+                                    if (symptom && symptom.trim()) {
+                                      hrsnProblems[symptom] = (hrsnProblems[symptom] || 0) + 1;
+                                    }
+                                  }
+                                });
+                                
+                                // Group HRSNs by frequency using configurable threshold (same as symptoms)
+                                const frequencyGroups: Record<number, string[]> = {};
+                                const maxFreq = Math.max(...Object.values(hrsnProblems), 0);
+                                
+                                for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
+                                  if (i === summaryThreshold) {
+                                    // Group for threshold and above
+                                    frequencyGroups[i] = Object.entries(hrsnProblems)
+                                      .filter(([_, freq]) => freq >= summaryThreshold)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  } else if (i < summaryThreshold) {
+                                    // Individual counts below threshold
+                                    frequencyGroups[i] = Object.entries(hrsnProblems)
+                                      .filter(([_, freq]) => freq === i)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  }
+                                }
+                                
+                                // Build output only for frequencies that have HRSN problems (> 0)
+                                const output = [];
+                                for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
+                                  if (frequencyGroups[i] && frequencyGroups[i].length > 0) {
+                                    let displayText;
+                                    if (i === summaryThreshold && summaryThreshold > 1) {
+                                      displayText = `${summaryThreshold} times or more`;
+                                    } else {
+                                      const timesText = i === 1 ? 'time' : 'times';
+                                      displayText = `${i} ${timesText}`;
+                                    }
+                                    
+                                    output.push(
+                                      <div key={i} className="ml-2">
+                                        - these HRSN problems were expressed {displayText} over the timeperiod{' '}
+                                        <span className="font-medium">[{frequencyGroups[i].join(', ')}]</span>;
+                                      </div>
+                                    );
+                                  }
+                                }
+                                
+                                return output.length > 0 ? output : <div className="ml-2 text-gray-500">No HRSN problems documented</div>;
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      // Grid Format (EXACT schema per user requirements)
+                      return (
+                        <div className="text-sm leading-relaxed">
+                          <span className="font-bold">Summary (Grid Format):</span>
+                          <div className="mt-1">
+                            The person has had <span className="font-medium">{patientNotes.length}</span> contacts with{' '}
+                            <span className="font-medium">{uniqueProviders}</span> number of staff submitting notes from{' '}
+                            <span className="font-medium">{formatDate(firstDate)}</span> through{' '}
+                            <span className="font-medium">{formatDate(lastDate)}</span>.
+                          </div>
+                          
+                          <div className="mt-2">
+                            The diagnosis on the record is:{' '}
+                            <span className="font-medium">{diagnoses}</span>
+                          </div>
+                          
+                          <div className="mt-3">
+                            <div className="font-semibold">The person has expressed</div>
+                            
+                            <div className="mt-2">
+                              <div className="font-semibold border-b-2 border-black inline-block">Symptom Trends:</div>
+                              
+                              {/* Symptoms at threshold+ times - Grid Layout */}
+                              {(() => {
+                                const symptomsAboveThreshold = Object.entries(symptomFreq)
+                                  .filter(([_, freq]) => freq >= summaryThreshold)
+                                  .sort((a, b) => b[1] - a[1]);
+                                
+                                if (symptomsAboveThreshold.length > 0) {
+                                  const highestFreq = symptomsAboveThreshold[0][1];
+                                  
+                                  return (
+                                    <>
+                                      <div className="ml-2 mt-1">
+                                        - these symptoms <strong>{summaryThreshold === highestFreq ? `${summaryThreshold}` : `${summaryThreshold}`}</strong> {summaryThreshold === highestFreq ? 'times' : 'times or more'} over the timeperiod
+                                      </div>
+                                      
+                                      {/* Dynamic Grid for symptoms - only shows rows with data */}
+                                      <div className="grid grid-cols-3 gap-2 mt-2 ml-4">
+                                        {symptomsAboveThreshold.map(([symptom, count], index) => (
+                                          <div key={index} className="border rounded p-1 h-8 text-xs">
+                                            <span className="font-bold">
+                                              [{symptom}]
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </>
+                                  );
+                                }
+                                return null;
+                              })()}
+
+                              {/* Symptoms below threshold - Grid Layout using same logic as linear format */}
+                              {(() => {
+                                const frequencyGroups: Record<number, string[]> = {};
+                                const maxFreq = Math.max(...Object.values(symptomFreq), 0);
+                                
+                                // Build frequency groups using same logic as linear format
+                                for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
+                                  if (i === summaryThreshold && summaryThreshold > 1) {
+                                    // Already handled above
+                                  } else if (i < summaryThreshold) {
+                                    frequencyGroups[i] = Object.entries(symptomFreq)
+                                      .filter(([_, freq]) => freq === i)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  }
+                                }
+                                
+                                const output = [];
+                                for (let i = summaryThreshold - 1; i >= 1; i--) {
+                                  if (frequencyGroups[i] && frequencyGroups[i].length > 0) {
+                                    const timesText = i === 1 ? 'time' : 'times';
+                                    
+                                    if (i === 1) {
+                                      // Special treatment for frequency=1: show as dropdown with categorization
+                                      output.push(
+                                        <div key={i} className="ml-2 mt-3">
+                                          <div className="mb-2">
+                                            - these symptoms <strong>1</strong> time over the timeperiod: 
+                                            <strong> Count of Unique Symptoms: {frequencyGroups[i].length}</strong>
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-2 gap-4 ml-2">
+                                            {/* First Column: Grouped by Diagnosis (current view) */}
+                                            <details>
+                                              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                                                ▼ Click to display symptoms (grouped by diagnosis)
+                                              </summary>
+                                              
+                                              <div className="mt-2 p-3 bg-gray-50 rounded">
+                                                {(() => {
+                                                  // Group symptoms by diagnosis
+                                                  const symptomsByDiagnosis: Record<string, string[]> = {};
+                                                  
+                                                  frequencyGroups[i].forEach(symptom => {
+                                                    // Find diagnoses for this symptom
+                                                    const diagnoses = extractedSymptoms
+                                                      .filter(item => (item.symptom_segment || item.symptom || item.text) === symptom)
+                                                      .map(item => item.diagnosis || 'No Diagnosis')
+                                                      .filter(d => d);
+                                                    
+                                                    diagnoses.forEach(diagnosis => {
+                                                      if (!symptomsByDiagnosis[diagnosis]) {
+                                                        symptomsByDiagnosis[diagnosis] = [];
+                                                      }
+                                                      if (!symptomsByDiagnosis[diagnosis].includes(symptom)) {
+                                                        symptomsByDiagnosis[diagnosis].push(symptom);
+                                                      }
+                                                    });
+                                                  });
+                                                  
+                                                  return Object.entries(symptomsByDiagnosis)
+                                                    .sort(([a], [b]) => a.localeCompare(b))
+                                                    .map(([diagnosis, symptoms]) => (
+                                                      <div key={diagnosis} className="mb-3">
+                                                        <div className="font-semibold text-sm text-blue-800 mb-1">
+                                                          {diagnosis}:
+                                                        </div>
+                                                        <div className="ml-2 text-xs">
+                                                          {symptoms.sort().map((symptom, idx) => (
+                                                            <div key={idx} className="mb-1">
+                                                              [{symptom}]
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    ));
+                                                })()}
+                                              </div>
+                                            </details>
+
+                                            {/* Second Column: Grouped by Symptom (reverse view) */}
+                                            <details>
+                                              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                                                ▼ Click to display diagnoses (grouped by symptom)
+                                              </summary>
+                                              
+                                              <div className="mt-2 p-3 bg-gray-50 rounded">
+                                                {(() => {
+                                                  // Group diagnoses by symptom
+                                                  const diagnosesBySymptom: Record<string, string[]> = {};
+                                                  
+                                                  frequencyGroups[i].forEach(symptom => {
+                                                    // Find diagnoses for this symptom
+                                                    const diagnoses = extractedSymptoms
+                                                      .filter(item => (item.symptom_segment || item.symptom || item.text) === symptom)
+                                                      .map(item => item.diagnosis || 'No Diagnosis')
+                                                      .filter(d => d);
+                                                    
+                                                    if (!diagnosesBySymptom[symptom]) {
+                                                      diagnosesBySymptom[symptom] = [];
+                                                    }
+                                                    
+                                                    diagnoses.forEach(diagnosis => {
+                                                      if (!diagnosesBySymptom[symptom].includes(diagnosis)) {
+                                                        diagnosesBySymptom[symptom].push(diagnosis);
+                                                      }
+                                                    });
+                                                  });
+                                                  
+                                                  return Object.entries(diagnosesBySymptom)
+                                                    .sort(([a], [b]) => a.localeCompare(b))
+                                                    .map(([symptom, diagnoses]) => (
+                                                      <div key={symptom} className="mb-3">
+                                                        <div className="font-semibold text-sm text-blue-800 mb-1">
+                                                          {symptom}:
+                                                        </div>
+                                                        <div className="ml-2 text-xs">
+                                                          {diagnoses.sort().map((diagnosis, idx) => (
+                                                            <div key={idx} className="mb-1">
+                                                              [{diagnosis}]
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    ));
+                                                })()}
+                                              </div>
+                                            </details>
+                                          </div>
+                                        </div>
+                                      );
+                                    } else {
+                                      // Regular grid layout for other frequencies
+                                      output.push(
+                                        <div key={i}>
+                                          <div className="ml-2 mt-3">
+                                            - these symptoms <strong>{i}</strong> {timesText} over the timeperiod
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-3 gap-2 mt-2 ml-4">
+                                            {frequencyGroups[i].map((symptom, index) => (
+                                              <div key={index} className="border rounded p-1 h-8 text-xs">
+                                                <span className="font-bold">
+                                                  [{symptom}]
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                  }
+                                }
+                                
+                                return output;
+                              })()}
+                            </div>
+                            
+                            <div className="mt-3">
+                              <div className="font-semibold border-b-2 border-black inline-block">Diagnosis Trends:</div>
+                              
+                              {/* Dynamic Diagnosis Trends - using same logic as linear format */}
+                              {(() => {
+                                const diagnosisFrequencyGroups: Record<number, string[]> = {};
+                                const maxDiagnosisFreq = Math.max(...Object.values(diagnosisSymptomCount), 0);
+                                
+                                // Build frequency groups using same logic as linear format
+                                for (let i = Math.max(maxDiagnosisFreq, summaryThreshold); i >= 1; i--) {
+                                  if (i === summaryThreshold) {
+                                    diagnosisFrequencyGroups[i] = Object.entries(diagnosisSymptomCount)
+                                      .filter(([_, count]) => count >= summaryThreshold)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  } else if (i < summaryThreshold) {
+                                    diagnosisFrequencyGroups[i] = Object.entries(diagnosisSymptomCount)
+                                      .filter(([_, count]) => count === i)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  }
+                                }
+                                
+                                const diagnosisOutput = [];
+                                for (let i = Math.max(maxDiagnosisFreq, summaryThreshold); i >= 1; i--) {
+                                  if (diagnosisFrequencyGroups[i] && diagnosisFrequencyGroups[i].length > 0) {
+                                    let displayText;
+                                    if (i === summaryThreshold && summaryThreshold > 1) {
+                                      displayText = `${summaryThreshold} symptoms or more`;
+                                    } else {
+                                      const symptomText = i === 1 ? 'symptom' : 'symptoms';
+                                      displayText = `${i} ${symptomText}`;
+                                    }
+                                    
+                                    if (i === 1) {
+                                      // Special treatment for diagnoses with 1 symptom: show as dropdown with categorization
+                                      diagnosisOutput.push(
+                                        <div key={i} className="ml-2 mt-3">
+                                          <div className="mb-2">
+                                            - these diagnoses had <strong>1</strong> symptom over the timeperiod: 
+                                            <strong> Count of Unique Diagnoses: {diagnosisFrequencyGroups[i].length}</strong>
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-2 gap-4 ml-2">
+                                            {/* First Column: Grouped by Diagnostic Category (current view) */}
+                                            <details>
+                                              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                                                ▼ Click to display diagnoses (grouped by diagnostic category)
+                                              </summary>
+                                              
+                                              <div className="mt-2 p-3 bg-gray-50 rounded">
+                                                {(() => {
+                                                  // Group diagnoses by diagnostic category
+                                                  const diagnosesByCategory: Record<string, string[]> = {};
+                                                  
+                                                  diagnosisFrequencyGroups[i].forEach(diagnosis => {
+                                                    // Find diagnostic categories for this diagnosis
+                                                    const categories = extractedSymptoms
+                                                      .filter(item => item.diagnosis === diagnosis)
+                                                      .map(item => item.diagnostic_category || 'No Category')
+                                                      .filter(c => c);
+                                                    
+                                                    categories.forEach(category => {
+                                                      if (!diagnosesByCategory[category]) {
+                                                        diagnosesByCategory[category] = [];
+                                                      }
+                                                      if (!diagnosesByCategory[category].includes(diagnosis)) {
+                                                        diagnosesByCategory[category].push(diagnosis);
+                                                      }
+                                                    });
+                                                  });
+                                                  
+                                                  return Object.entries(diagnosesByCategory)
+                                                    .sort(([a], [b]) => a.localeCompare(b))
+                                                    .map(([category, diagnoses]) => (
+                                                      <div key={category} className="mb-3">
+                                                        <div className="font-semibold text-sm text-blue-800 mb-1">
+                                                          {category}:
+                                                        </div>
+                                                        <div className="ml-2 text-xs">
+                                                          {diagnoses.sort().map((diagnosis, idx) => (
+                                                            <div key={idx} className="mb-1">
+                                                              [{diagnosis}]
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    ));
+                                                })()}
+                                              </div>
+                                            </details>
+
+                                            {/* Second Column: Grouped by Diagnosis (reverse view) */}
+                                            <details>
+                                              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                                                ▼ Click to display categories (grouped by diagnosis)
+                                              </summary>
+                                              
+                                              <div className="mt-2 p-3 bg-gray-50 rounded">
+                                                {(() => {
+                                                  // Group diagnostic categories by diagnosis
+                                                  const categoriesByDiagnosis: Record<string, string[]> = {};
+                                                  
+                                                  diagnosisFrequencyGroups[i].forEach(diagnosis => {
+                                                    // Find diagnostic categories for this diagnosis
+                                                    const categories = extractedSymptoms
+                                                      .filter(item => item.diagnosis === diagnosis)
+                                                      .map(item => item.diagnostic_category || 'No Category')
+                                                      .filter(c => c);
+                                                    
+                                                    if (!categoriesByDiagnosis[diagnosis]) {
+                                                      categoriesByDiagnosis[diagnosis] = [];
+                                                    }
+                                                    
+                                                    categories.forEach(category => {
+                                                      if (!categoriesByDiagnosis[diagnosis].includes(category)) {
+                                                        categoriesByDiagnosis[diagnosis].push(category);
+                                                      }
+                                                    });
+                                                  });
+                                                  
+                                                  return Object.entries(categoriesByDiagnosis)
+                                                    .sort(([a], [b]) => a.localeCompare(b))
+                                                    .map(([diagnosis, categories]) => (
+                                                      <div key={diagnosis} className="mb-3">
+                                                        <div className="font-semibold text-sm text-blue-800 mb-1">
+                                                          {diagnosis}:
+                                                        </div>
+                                                        <div className="ml-2 text-xs">
+                                                          {categories.sort().map((category, idx) => (
+                                                            <div key={idx} className="mb-1">
+                                                              [{category}]
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    ));
+                                                })()}
+                                              </div>
+                                            </details>
+                                          </div>
+                                        </div>
+                                      );
+                                    } else {
+                                      // Regular grid layout for other frequencies
+                                      diagnosisOutput.push(
+                                        <div key={i}>
+                                          <div className="ml-2 mt-1">
+                                            - these diagnoses had <strong>{displayText}</strong> associated with them over the timeperiod
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-3 gap-2 mt-2 ml-4">
+                                            {diagnosisFrequencyGroups[i].map((diagnosis, index) => (
+                                              <div key={index} className="border rounded p-1 h-8 text-xs">
+                                                <span className="font-bold">
+                                                  [{diagnosis}]
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                  }
+                                }
+                                
+                                return diagnosisOutput;
+                              })()}
+                            </div>
+
+                            <div className="mt-3">
+                              <div className="font-semibold border-b-2 border-black inline-block">Diagnostic Category Trends:</div>
+                              
+                              {/* Dynamic Diagnostic Category Trends - using same logic as linear format */}
+                              {(() => {
+                                // Count diagnoses associated with each diagnostic category
+                                const categoryDiagnosisCount: Record<string, Set<string>> = {};
+                                
+                                extractedSymptoms.forEach(item => {
+                                  const category = item.diagnostic_category || '';
+                                  const diagnosis = item.diagnosis || '';
+                                  if (category && category.trim() && diagnosis && diagnosis.trim()) {
+                                    if (!categoryDiagnosisCount[category]) {
+                                      categoryDiagnosisCount[category] = new Set();
+                                    }
+                                    categoryDiagnosisCount[category].add(diagnosis);
+                                  }
+                                });
+                                
+                                // Convert sets to counts
+                                const categoryCounts: Record<string, number> = {};
+                                Object.entries(categoryDiagnosisCount).forEach(([category, diagnosisSet]) => {
+                                  categoryCounts[category] = diagnosisSet.size;
+                                });
+                                
+                                const categoryFrequencyGroups: Record<number, string[]> = {};
+                                const maxCategoryFreq = Math.max(...Object.values(categoryCounts), 0);
+                                
+                                // Build frequency groups using same logic as linear format
+                                for (let i = Math.max(maxCategoryFreq, summaryThreshold); i >= 1; i--) {
+                                  if (i === summaryThreshold) {
+                                    categoryFrequencyGroups[i] = Object.entries(categoryCounts)
+                                      .filter(([_, count]) => count >= summaryThreshold)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  } else if (i < summaryThreshold) {
+                                    categoryFrequencyGroups[i] = Object.entries(categoryCounts)
+                                      .filter(([_, count]) => count === i)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  }
+                                }
+                                
+                                const categoryOutput = [];
+                                for (let i = Math.max(maxCategoryFreq, summaryThreshold); i >= 1; i--) {
+                                  if (categoryFrequencyGroups[i] && categoryFrequencyGroups[i].length > 0) {
+                                    let displayText;
+                                    if (i === summaryThreshold && summaryThreshold > 1) {
+                                      displayText = `${summaryThreshold} diagnoses or more`;
+                                    } else {
+                                      const diagnosisText = i === 1 ? 'diagnosis' : 'diagnoses';
+                                      displayText = `${i} ${diagnosisText}`;
+                                    }
+                                    
+                                    if (i === 1) {
+                                      // Special treatment for categories with 1 diagnosis: show as dropdown
+                                      categoryOutput.push(
+                                        <div key={i} className="ml-2 mt-3">
+                                          <div className="mb-2">
+                                            - these diagnostic categories had <strong>1</strong> diagnosis over the timeperiod: 
+                                            <strong> Count of Unique Categories: {categoryFrequencyGroups[i].length}</strong>
+                                          </div>
+                                          
+                                          <details className="ml-2">
+                                            <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                                              ▼ Click to display categories (with associated diagnoses)
+                                            </summary>
+                                            
+                                            <div className="mt-2 p-3 bg-gray-50 rounded">
+                                              {categoryFrequencyGroups[i].map((category, idx) => (
+                                                <div key={idx} className="mb-3">
+                                                  <div className="font-semibold text-sm text-blue-800 mb-1">
+                                                    {category}:
+                                                  </div>
+                                                  <div className="ml-2 text-xs">
+                                                    {Array.from(categoryDiagnosisCount[category] || []).sort().map((diagnosis, diagIdx) => (
+                                                      <div key={diagIdx} className="mb-1">
+                                                        [{diagnosis}]
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </details>
+                                        </div>
+                                      );
+                                    } else {
+                                      // Regular grid layout for other frequencies
+                                      categoryOutput.push(
+                                        <div key={i}>
+                                          <div className="ml-2 mt-1">
+                                            - these diagnostic categories had <strong>{displayText}</strong> associated with them over the timeperiod
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-3 gap-2 mt-2 ml-4">
+                                            {categoryFrequencyGroups[i].map((category, index) => (
+                                              <div key={index} className="border rounded p-1 h-8 text-xs">
+                                                <span className="font-bold">
+                                                  [{category}]
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                  }
+                                }
+                                
+                                return categoryOutput.length > 0 ? categoryOutput : <div className="ml-2 text-gray-500">No diagnostic category data available</div>;
+                              })()}
+                            </div>
+
+                            <div className="mt-3">
+                              <span className="font-bold italic">Over the last two sessions they have expressed these symptoms:</span>
+                              
+                              <div className="grid grid-cols-3 gap-2 mt-2 ml-4">
+                                {Object.entries(lastTwoSymptoms)
+                                  .sort((a, b) => b[1] - a[1])
+                                  .map(([symptom, count], index) => (
+                                    <div key={index} className="border rounded p-1 h-8 text-xs">
+                                      <span className="font-bold">
+                                        {symptom} ({count})
+                                      </span>
+                                    </div>
+                                  ))}
                               </div>
-                            );
-                          }
-                        }
-                        
-                        return output.length > 0 ? output : <div className="ml-2 text-gray-500">No HRSN problems documented</div>;
-                      })()}
-                    </div>
-                  </div>
+                            </div>
+                            
+                            <div className="mt-3">
+                              <div className="font-semibold border-b-2 border-black inline-block">HRSN Trends:</div>
+                              
+                              {/* HRSN at threshold+ times - Grid Layout */}
+                              {(() => {
+                                const hrsnAboveThreshold = Object.entries(hrsnProblems)
+                                  .filter(([_, freq]) => freq >= summaryThreshold)
+                                  .sort((a, b) => b[1] - a[1]);
+                                
+                                if (hrsnAboveThreshold.length > 0) {
+                                  const highestHrsnFreq = hrsnAboveThreshold[0][1];
+                                  return (
+                                    <>
+                                      <div className="ml-2 mt-1">
+                                        - these HRSN problems were expressed <strong>{summaryThreshold === highestHrsnFreq ? `${summaryThreshold}` : `${summaryThreshold}`}</strong> {summaryThreshold === highestHrsnFreq ? 'times' : 'times or more'} over the timeperiod
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-3 gap-2 mt-2 ml-4">
+                                        {hrsnAboveThreshold.map(([hrsn, count], index) => (
+                                          <div key={index} className="border rounded p-1 h-8 text-xs">
+                                            <span className="font-bold">
+                                              [{hrsn}]
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </>
+                                  );
+                                }
+                                return null;
+                              })()}
+
+                              {/* HRSN below threshold - Grid Layout using same logic as linear format */}
+                              {(() => {
+                                const frequencyGroups: Record<number, string[]> = {};
+                                const maxFreq = Math.max(...Object.values(hrsnProblems), 0);
+                                
+                                // Build frequency groups using same logic as linear format
+                                for (let i = Math.max(maxFreq, summaryThreshold); i >= 1; i--) {
+                                  if (i === summaryThreshold && summaryThreshold > 1) {
+                                    // Already handled above
+                                  } else if (i < summaryThreshold) {
+                                    frequencyGroups[i] = Object.entries(hrsnProblems)
+                                      .filter(([_, freq]) => freq === i)
+                                      .map(([name]) => name)
+                                      .sort();
+                                  }
+                                }
+                                
+                                const output = [];
+                                for (let i = summaryThreshold - 1; i >= 1; i--) {
+                                  if (frequencyGroups[i] && frequencyGroups[i].length > 0) {
+                                    const timesText = i === 1 ? 'time' : 'times';
+                                    
+                                    output.push(
+                                      <div key={i}>
+                                        <div className="ml-2 mt-3">
+                                          - these HRSN problems were expressed <strong>{i}</strong> {timesText} over the timeperiod
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-3 gap-2 mt-2 ml-4">
+                                          {frequencyGroups[i].map((hrsn, index) => (
+                                            <div key={index} className="border rounded p-1 h-8 text-xs">
+                                              <span className="font-bold">
+                                                [{hrsn}]
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                }
+                                
+                                return output;
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
               </div>
             )}

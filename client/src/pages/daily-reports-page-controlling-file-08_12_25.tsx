@@ -66,6 +66,7 @@ export default function DailyReportsPage() {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [useGridFormat, setUseGridFormat] = useState<boolean>(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -75,6 +76,7 @@ export default function DailyReportsPage() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('schedule', file);
+      formData.append('useGridFormat', useGridFormat.toString());
       
       const response = await fetch('/api/daily-reports/upload', {
         method: 'POST',
@@ -181,6 +183,8 @@ export default function DailyReportsPage() {
       // Gradual progress updates for better user feedback during long downloads
       const progressInterval = setInterval(() => {
         setDownloadProgress(prev => {
+          // Ensure progress never exceeds 95% during auto-increment
+          if (prev >= 95) return prev;
           if (prev < 15) return prev + 1;
           if (prev < 25) return prev + 0.5;
           if (prev < 35) return prev + 0.3;
@@ -300,250 +304,304 @@ export default function DailyReportsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center max-w-md mx-auto">
-            <input
-              type="file"
-              accept=".csv,.xls,.xlsx"
-              onChange={handleFileSelect}
-              className="hidden"
-              id="file-upload"
-            />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <FileText className="h-6 w-6 mx-auto text-gray-400 mb-2" />
-                  <p className="text-sm font-medium">
-                    {selectedFile ? selectedFile.name : 'Choose file (CSV or Excel)'}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Requires patient_id and patient_name columns
-                  </p>
-                </label>
-          </div>
-
-              {selectedFile && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="text-sm font-medium">{selectedFile.name}</span>
-                    <span className="text-xs text-gray-500">
-                      ({(selectedFile.size / 1024).toFixed(1)} KB)
-                    </span>
+              {/* Summary Format Option */}
+              <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <input
+                  type="checkbox"
+                  id="grid-format-option"
+                  checked={useGridFormat}
+                  onChange={(e) => setUseGridFormat(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="grid-format-option" className="text-sm text-gray-700 cursor-pointer">
+                  <span className="font-medium">Use Grid Format Summary (NEW)</span>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Displays patient summaries in visual grid layout with collapsible sections instead of linear text
                   </div>
-                  <Button
-                    onClick={handleUpload}
-                    disabled={uploadMutation.isPending}
-                    size="sm"
-                    className="ml-4"
-                  >
-                    {uploadMutation.isPending ? 'Uploading...' : 'Process Reports'}
-                  </Button>
-                </div>
-              )}
-        </CardContent>
-      </Card>
-
-      {/* Processing Status */}
-      {currentJobId && jobStatus && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-lg">
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Processing Status
+                </label>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <span>Progress: {jobStatus.progress}%</span>
-                  <Progress value={jobStatus.progress} className="w-48" />
+              
+              <div className="flex gap-3 items-start">
+                {/* Drop Zone - Left Side */}
+                <div className="flex-1">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center">
+                    <input
+                      type="file"
+                      accept=".csv,.xls,.xlsx"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      <FileText className="h-6 w-6 mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm font-medium">
+                        {selectedFile ? selectedFile.name : 'Choose file (CSV or Excel)'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Requires patient_id and patient_name columns
+                      </p>
+                    </label>
+                  </div>
                 </div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium">Job ID: {currentJobId}</span>
-              <Badge variant={
-                jobStatus.status === 'completed' ? 'default' :
-                jobStatus.status === 'error' ? 'destructive' : 'secondary'
-              }>
-                {jobStatus.status}
-              </Badge>
-            </div>
 
-            {jobStatus.error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{jobStatus.error}</AlertDescription>
-              </Alert>
-            )}
-
-            {jobStatus.status === 'completed' && (
-              <div className="space-y-2 mt-2">
-                <Button onClick={handleDownload} className="w-full" disabled={isDownloading}>
-                  <Download className="h-5 w-5 mr-2" />
-                  <span className="text-blue-600 font-bold">
-                    {isDownloading ? 'Preparing Download...' : 'Download Patient Reports (PDF)'}
-                  </span>
-                </Button>
-                
-                {/* Download Progress Bar */}
-                {isDownloading && (
-                  <div className="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-blue-800 font-medium flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0" style={{animationDuration: '0.8s'}}></div>
-                        Download Progress
-                      </span>
-                      <span className="text-blue-600">{Math.round(downloadProgress)}%</span>
-                    </div>
-                    <Progress value={downloadProgress} className="w-full h-2" />
-                    <div className="text-xs text-blue-700 flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse flex-shrink-0" style={{animationDuration: '1.2s'}}></div>
-                      <span>
-                        {downloadProgress < 20 ? 'Initializing download...' :
-                         downloadProgress < 40 ? 'Preparing PDF file...' :
-                         downloadProgress < 60 ? 'Processing download...' :
-                         downloadProgress < 85 ? 'Finalizing transfer...' :
-                         downloadProgress < 100 ? 'Completing...' :
-                         'Download complete!'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-blue-600">
-                      Large files may take 1-2 minutes to prepare.
+                {/* File Selector & Process Button - Right Side */}
+                {selectedFile && (
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        <span className="text-sm font-medium">{selectedFile.name}</span>
+                        <span className="text-xs text-gray-500">
+                          ({(selectedFile.size / 1024).toFixed(1)} KB)
+                        </span>
+                      </div>
+                      <Button
+                        onClick={handleUpload}
+                        disabled={uploadMutation.isPending}
+                        size="sm"
+                        className="ml-4 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        {uploadMutation.isPending ? 'Uploading...' : 'Process Reports'}
+                      </Button>
                     </div>
                   </div>
                 )}
-                
-                <div className="text-sm text-muted-foreground bg-blue-50 p-2 rounded-lg">
-                  <p className="font-medium text-blue-800 text-xs">📥 Downloads to folder • daily-patient-reports-{new Date().toISOString().split('T')[0]}.pdf • 4 charts + summary per patient</p>
-                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
 
-      {/* Results Summary */}
-      {jobResults && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSearch className="h-5 w-5" />
-              Report Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Patient Matching Summary */}
-            <div>
-              <h3 className="font-semibold mb-3">Patient Matching Results</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{jobResults.result.matchSummary.total}</div>
-                  <div className="text-sm text-blue-800">Total Patients</div>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{jobResults.result.matchSummary.found}</div>
-                  <div className="text-sm text-green-800">Found</div>
-                </div>
-                <div className="text-center p-3 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{jobResults.result.matchSummary.not_found}</div>
-                  <div className="text-sm text-red-800">Not Found</div>
-                </div>
-                <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">{jobResults.result.matchSummary.multiple_matches}</div>
-                  <div className="text-sm text-yellow-800">Multiple Matches</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Report Generation Summary */}
-            <div>
-              <h3 className="font-semibold mb-3">Report Generation Results</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{jobResults.result.reportSummary.total}</div>
-                  <div className="text-sm text-blue-800">Total Reports</div>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{jobResults.result.reportSummary.successful}</div>
-                  <div className="text-sm text-green-800">Successful</div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-600">{jobResults.result.reportSummary.no_data}</div>
-                  <div className="text-sm text-gray-800">No Data</div>
-                </div>
-                <div className="text-center p-3 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{jobResults.result.reportSummary.errors}</div>
-                  <div className="text-sm text-red-800">Errors</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Individual Patient Status */}
-            <div>
-              <h3 className="font-semibold mb-3">Patient Report Status</h3>
-              <div className="max-h-64 overflow-y-auto space-y-2">
-                {jobResults.result.reports.map((report, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">{report.patient.patient_name}</div>
-                      <div className="text-sm text-gray-500">ID: {report.patient.patient_id}</div>
+          {/* Processing Status */}
+          {currentJobId && jobStatus && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between text-base">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Processing Status
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Small Progress Bar - Left of text */}
+                    <div className="w-[120px]">
+                      <div className="w-full bg-gray-300 rounded-full h-3 border border-gray-400">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
+                          style={{ width: `${Math.min(jobStatus.progress || 0, 100)}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {report.status === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                      {report.status === 'no_data' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
-                      {report.status === 'error' && <XCircle className="h-4 w-4 text-red-500" />}
-                      <Badge variant={
-                        report.status === 'success' ? 'default' :
-                        report.status === 'no_data' ? 'secondary' : 'destructive'
-                      }>
-                        {report.status === 'success' ? 'Complete' :
-                         report.status === 'no_data' ? 'No Data' : 'Error'}
-                      </Badge>
+                    <span className="text-sm font-medium">Progress: {Math.min(jobStatus.progress || 0, 100)}%</span>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Job ID: {currentJobId}</span>
+                  <Badge variant={
+                    jobStatus.status === 'completed' ? 'default' :
+                    jobStatus.status === 'error' ? 'destructive' : 'secondary'
+                  }>
+                    {jobStatus.status}
+                  </Badge>
+                </div>
+
+                {jobStatus.error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{jobStatus.error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {jobStatus.status === 'completed' && (
+                  <div className="space-y-3">
+                    <Button onClick={handleDownload} className="w-full" disabled={isDownloading}>
+                      <Download className="h-4 w-4 mr-2" />
+                      <span className="text-blue-600 font-bold text-xl">
+                        {isDownloading ? 'Preparing Download...' : 'Download Patient Reports (PDF)'}
+                      </span>
+                    </Button>
+                    
+                    {/* Download Progress */}
+                    {isDownloading && (
+                      <div className="space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-blue-800 font-medium flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0" style={{animationDuration: '0.8s'}}></div>
+                            Download Progress
+                          </span>
+                          <span className="text-blue-600 font-bold text-base">{Math.min(Math.round(downloadProgress), 100)}%</span>
+                        </div>
+                        
+                        {/* Enhanced Progress Bar */}
+                        <div className="relative">
+                          <div className="w-full bg-blue-100 rounded-full h-3 border border-blue-200">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 ease-out relative overflow-hidden"
+                              style={{ width: `${Math.min(downloadProgress, 100)}%` }}
+                            >
+                              {/* Moving shine effect */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-300 to-transparent animate-pulse opacity-50"></div>
+                            </div>
+                          </div>
+                          {/* Percentage overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xs font-semibold text-blue-800 drop-shadow-sm">
+                              {Math.min(Math.round(downloadProgress), 100)}%
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="text-sm text-blue-700 flex items-center gap-3">
+                          <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse flex-shrink-0"></div>
+                          <span className="min-w-[100px]">
+                            {downloadProgress < 20 ? 'Initializing...' :
+                             downloadProgress < 40 ? 'Preparing PDF...' :
+                             downloadProgress < 60 ? 'Processing...' :
+                             downloadProgress < 85 ? 'Finalizing...' :
+                             downloadProgress < 100 ? 'Completing...' :
+                             'Complete!'}
+                          </span>
+                          {/* Inline Progress Bar */}
+                          <div className="flex-1 max-w-[200px]">
+                            <div className="w-full bg-blue-200 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                                style={{ width: `${Math.min(downloadProgress, 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          <span className="text-xs font-medium text-blue-600 min-w-[35px] text-right">
+                            {Math.min(Math.round(downloadProgress), 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="text-sm text-blue-800 bg-blue-50 p-2 rounded text-center">
+                      📥 daily-patient-reports-{new Date().toISOString().split('T')[0]}.pdf • 4 charts + summary per patient
                     </div>
                   </div>
-                ))}
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Results Summary */}
+          {jobResults && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileSearch className="h-4 w-4" />
+                  Report Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                {/* Matching & Generation Results */}
+                <div className="space-y-3">
+                  {/* Patient Matching Results Row */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Patient Matching Results</h4>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2 bg-blue-50 rounded">
+                        <div className="text-xl font-bold text-blue-600">{jobResults.result.matchSummary.total}</div>
+                        <div className="text-sm text-blue-800">Total Patients</div>
+                      </div>
+                      <div className="p-2 bg-green-50 rounded">
+                        <div className="text-xl font-bold text-green-600">{jobResults.result.matchSummary.found}</div>
+                        <div className="text-sm text-green-800">Found in Database</div>
+                      </div>
+                      <div className="p-2 bg-red-50 rounded">
+                        <div className="text-xl font-bold text-red-600">{jobResults.result.matchSummary.not_found}</div>
+                        <div className="text-sm text-red-800">Not Found</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Report Generation Results Row */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Report Generation Results</h4>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2 bg-blue-50 rounded">
+                        <div className="text-xl font-bold text-blue-600">{jobResults.result.matchSummary.found}</div>
+                        <div className="text-sm text-blue-800">Attempted Reports</div>
+                      </div>
+                      <div className="p-2 bg-green-50 rounded">
+                        <div className="text-xl font-bold text-green-600">{jobResults.result.reportSummary.successful}</div>
+                        <div className="text-sm text-green-800">Successful Reports</div>
+                      </div>
+                      <div className="p-2 bg-red-50 rounded">
+                        <div className="text-xl font-bold text-red-600">{jobResults.result.reportSummary.errors}</div>
+                        <div className="text-sm text-red-800">Report Errors</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Patient Status */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Patient Status</h4>
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {jobResults.result.reports.map((report, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 border rounded">
+                        <div className="truncate">
+                          <span className="font-medium">{report.patient.patient_name}</span>
+                          <span className="text-gray-500 ml-2">({report.patient.patient_id})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {report.status === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                          {report.status === 'no_data' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
+                          {report.status === 'error' && <XCircle className="h-4 w-4 text-red-500" />}
+                          <Badge variant={
+                            report.status === 'success' ? 'default' :
+                            report.status === 'no_data' ? 'secondary' : 'destructive'
+                          }>
+                            {report.status === 'success' ? 'OK' :
+                             report.status === 'no_data' ? 'No Data' : 'Error'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Instructions */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Quick Reference</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div className="bg-gray-50 p-3 rounded">
+                  <h4 className="font-semibold mb-2">File Format</h4>
+                  <div className="space-y-1">
+                    <div><strong>patient_id</strong> - Unique ID</div>
+                    <div><strong>patient_name</strong> - Full name</div>
+                    <div>CSV or Excel format</div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 p-3 rounded">
+                  <h4 className="font-semibold mb-2">Report Contents</h4>
+                  <div className="space-y-1">
+                    <div>• 4 bubble charts per patient</div>
+                    <div>• Professional summary</div>
+                    <div>• HRSN + Diagnoses + Categories + Symptoms</div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-3 rounded">
+                  <h4 className="font-semibold mb-2">Matching Logic</h4>
+                  <div className="space-y-1">
+                    <div>1. ID + Name (exact)</div>
+                    <div>2. ID only</div>
+                    <div>3. Name only</div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Instructions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Instructions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-semibold mb-2">CSV File Format Requirements:</h4>
-            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-              <li><strong>patient_id</strong> - Unique patient identifier</li>
-              <li><strong>patient_name</strong> - Patient full name</li>
-              <li>Additional columns will be preserved in the reports</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className="font-semibold mb-2">Report Contents (per patient):</h4>
-            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-              <li>HRSN Indicators bubble chart</li>
-              <li>Diagnoses bubble chart</li>
-              <li>Diagnostic Categories bubble chart</li>
-              <li>Symptoms bubble chart</li>
-              <li>Professional narrative summary</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-2">Patient Matching:</h4>
-            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-              <li>Primary match: patient_id + patient_name (exact)</li>
-              <li>Secondary match: patient_id only</li>
-              <li>Tertiary match: patient_name only</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

@@ -77,9 +77,16 @@ export class ChartGeneratorService {
   }
 
   private async fetchPatientData(patientId: string, chartType: string) {
-    // Get all symptoms for this patient
+    // PERFORMANCE OPTIMIZATION: Single query with targeted field selection
     const symptoms = await db
-      .select()
+      .select({
+        patient_id: extractedSymptoms.patient_id,
+        symptom_segment: extractedSymptoms.symptom_segment,
+        diagnosis: extractedSymptoms.diagnosis,
+        diagnostic_category: extractedSymptoms.diagnostic_category,
+        symp_prob: extractedSymptoms.symp_prob,
+        dos_date: extractedSymptoms.dos_date  // FIXED: Only dos_date exists in database
+      })
       .from(extractedSymptoms)
       .where(
         and(
@@ -196,69 +203,44 @@ export class ChartGeneratorService {
     return { rows, columns, data, maxValue };
   }
 
-  // Transform medical pivot data to bubble chart points - EXACT same as main app
+  // Transform medical pivot data to bubble chart format - EXACT same as main app
   private pivotToMedicalBubbles(pivotData: any, chartType: string): BubbleChartDataPoint[] {
-    const bubblePoints: BubbleChartDataPoint[] = [];
-    
-    // Calculate row frequencies for medical coloring - same as main app
-    const rowTotals: Record<string, number> = {};
-    let maxFrequency = 1;
-    
-    pivotData.rows.forEach((row: string) => {
-      let count = 0;
-      pivotData.columns.forEach((col: string) => {
-        if (pivotData.data[row]?.[col] > 0) {
-          count++;
-        }
-      });
-      rowTotals[row] = count;
-      if (count > maxFrequency) {
-        maxFrequency = count;
-      }
-    });
+    const bubbles: BubbleChartDataPoint[] = [];
+    const { rows, columns, data, maxValue } = pivotData;
 
-    // Get date range for X positioning
-    const startDate = new Date(pivotData.columns[0] + ', 2024');
-    const endDate = new Date(pivotData.columns[pivotData.columns.length - 1] + ', 2024');
-    const dayRange = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    // Create bubbles for each cell with data - EXACT same logic as main app
+    rows.forEach((row: string, rowIndex: number) => {
+      columns.forEach((column: string, colIndex: number) => {
+        const count = data[row][column];
+        if (count > 0) {
+          // Calculate bubble size based on count relative to max - EXACT same as main app
+          const relativeSize = count / maxValue;
+          const baseSize = 8; // Minimum bubble size
+          const maxSize = 25; // Maximum bubble size
+          const bubbleRadius = baseSize + (relativeSize * (maxSize - baseSize));
 
-    console.log(`📍 MEDICAL POSITIONING: Date range ${dayRange} days, ${pivotData.rows.length} symptoms`);
-
-    // Create bubble points with medical positioning - EXACT same as main app
-    pivotData.rows.forEach((row: string, rowIndex: number) => {
-      pivotData.columns.forEach((col: string, colIndex: number) => {
-        const value = pivotData.data[row]?.[col] || 0;
-        
-        if (value > 0) {
-          const frequency = rowTotals[row] || 1;
-          const colDate = new Date(col + ', 2024');
-          const dayOffset = Math.ceil((colDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-          
-          bubblePoints.push({
-            x: dayOffset,
-            y: rowIndex,
-            r: Math.max(3, Math.min(12, value * 2)),
-            count: value,
-            frequency,
+          bubbles.push({
+            x: colIndex * 50 + 30, // Spread bubbles horizontally
+            y: rowIndex * 40 + 30, // Spread bubbles vertically
+            r: Math.max(baseSize, Math.min(maxSize, bubbleRadius)),
             label: row,
-            date: col,
-            originalDate: colDate
+            count: count,
+            date: column
           });
         }
       });
     });
 
-    console.log(`✅ MEDICAL BUBBLES: Generated ${bubblePoints.length} positioned points`);
-    return bubblePoints;
+    console.log(`📈 MEDICAL BUBBLES: Generated ${bubbles.length} bubbles from ${rows.length}x${columns.length} pivot`);
+    return bubbles;
   }
 
   private processSymptomDataForBubbles(symptoms: any[], startDate: Date, dayRange: number): BubbleChartDataPoint[] {
     const symptomMap = new Map<string, Map<string, number>>();
     
     symptoms.forEach(symptom => {
-      const symptomName = symptom.symptom_segment || symptom.symptom_wording || 'Unknown';
+      const symptomName = symptom.symptom_segment || 'Unknown';
       const date = new Date(symptom.dos_date);
-      const dayFromStart = Math.floor((date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       const dateKey = date.toISOString().split('T')[0];
       
       if (!symptomMap.has(symptomName)) {
@@ -269,7 +251,7 @@ export class ChartGeneratorService {
     });
 
     const result: BubbleChartDataPoint[] = [];
-    const symptomNames = Array.from(symptomMap.keys()).slice(0, 15); // Limit for readability
+    const symptomNames = Array.from(symptomMap.keys()).slice(0, 10);
     
     symptomNames.forEach((symptomName, yIndex) => {
       const dates = symptomMap.get(symptomName)!;
@@ -296,19 +278,19 @@ export class ChartGeneratorService {
     const diagnosisMap = new Map<string, Map<string, number>>();
     
     symptoms.forEach(symptom => {
-      const diagnosis = symptom.diagnosis || 'No Diagnosis';
+      const diagnosisName = symptom.diagnosis || 'No Diagnosis';
       const date = new Date(symptom.dos_date);
       const dateKey = date.toISOString().split('T')[0];
       
-      if (!diagnosisMap.has(diagnosis)) {
-        diagnosisMap.set(diagnosis, new Map());
+      if (!diagnosisMap.has(diagnosisName)) {
+        diagnosisMap.set(diagnosisName, new Map());
       }
-      const diagnosisDates = diagnosisMap.get(diagnosis)!;
+      const diagnosisDates = diagnosisMap.get(diagnosisName)!;
       diagnosisDates.set(dateKey, (diagnosisDates.get(dateKey) || 0) + 1);
     });
 
     const result: BubbleChartDataPoint[] = [];
-    const diagnosisNames = Array.from(diagnosisMap.keys()).slice(0, 10);
+    const diagnosisNames = Array.from(diagnosisMap.keys()).slice(0, 8);
     
     diagnosisNames.forEach((diagnosisName, yIndex) => {
       const dates = diagnosisMap.get(diagnosisName)!;
@@ -464,381 +446,96 @@ export class ChartGeneratorService {
       svg += `<line x1="${x}" y1="${margin.top}" x2="${x}" y2="${margin.top + chartHeight}" stroke="#f0f0f0" stroke-width="1"/>`;
     });
     
-    // GRID LINES - Horizontal (for labels) - exactly like Nivo  
-    const yStep = uniqueLabels.length > 0 ? chartHeight / uniqueLabels.length : chartHeight;
+    // GRID LINES - Horizontal (for labels) - exactly like Nivo
+    const yStep = uniqueLabels.length > 1 ? chartHeight / (uniqueLabels.length - 1) : chartHeight / 2;
     uniqueLabels.forEach((label, index) => {
-      const y = margin.top + (index * yStep) + (yStep / 2);
+      const y = margin.top + (index * yStep);
       svg += `<line x1="${margin.left}" y1="${y}" x2="${margin.left + chartWidth}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;
     });
     
-    // Y-AXIS LABELS with COLORED BULLETS - exactly like main app
-    uniqueLabels.forEach((label, index) => {
-      const y = margin.top + (index * yStep) + (yStep / 2);
-      const frequency = labelMap.get(label)?.dates.length || 1;
-      
-      // Color intensity based on frequency - exactly like main app theming
-      let color = '#CCCCFF'; // LOWEST
-      if (frequency >= 10) color = '#6A0DAD'; // HIGHEST - purple
-      else if (frequency >= 8) color = '#9370DB'; // HIGH - medium purple  
-      else if (frequency >= 5) color = '#B19CD9'; // MEDIUM - light purple
-      else if (frequency >= 2) color = '#CCCCFF'; // LOW - very light purple
-      
-      // AXIS TICK LINE - exactly like Nivo
-      svg += `<line x1="${margin.left - 5}" y1="${y}" x2="${margin.left}" y2="${y}" stroke="#ccc" stroke-width="1"/>`;
-      
-      // COLORED BULLET POINT - exactly like main app
-      svg += `<circle cx="${margin.left - 15}" cy="${y}" r="4" fill="${color}"/>`;
-      
-      // LABEL TEXT - exactly like main app
-      const displayText = `${label} (${frequency})`;
-      svg += `<text x="${margin.left - 25}" y="${y}" text-anchor="end" dominant-baseline="middle" font-family="Arial" font-size="9" fill="#666">${displayText}</text>`;
-    });
-    
-    // X-AXIS LABELS with TICK MARKS - exactly like Nivo
+    // X-AXIS LABELS (dates) - exactly like main app
     uniqueDates.forEach((date, index) => {
       const x = margin.left + (index * xStep);
-      const y = margin.top + chartHeight;
-      
-      // AXIS TICK LINE
-      svg += `<line x1="${x}" y1="${y}" x2="${x}" y2="${y + 5}" stroke="#ccc" stroke-width="1"/>`;
-      
-      // DATE LABEL - rotated 45 degrees like main app
-      svg += `<text x="${x}" y="${y + 20}" text-anchor="start" font-family="Arial" font-size="8" fill="#666" transform="rotate(45, ${x}, ${y + 20})">${date}</text>`;
+      svg += `<text x="${x}" y="${height - 30}" text-anchor="middle" font-family="Arial" font-size="10" fill="#666">${date}</text>`;
     });
     
-    // MAIN AXIS LINES - exactly like Nivo
-    svg += `<line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + chartHeight}" stroke="#ccc" stroke-width="2"/>`;
-    svg += `<line x1="${margin.left}" y1="${margin.top + chartHeight}" x2="${margin.left + chartWidth}" y2="${margin.top + chartHeight}" stroke="#ccc" stroke-width="2"/>`;
+    // Y-AXIS LABELS (symptoms/categories) - exactly like main app
+    uniqueLabels.forEach((label, index) => {
+      const y = margin.top + (index * yStep) + 4; // +4 for better vertical centering
+      const truncatedLabel = label.length > 25 ? label.substring(0, 25) + '...' : label;
+      svg += `<text x="${margin.left - 10}" y="${y}" text-anchor="end" font-family="Arial" font-size="9" fill="#333">${truncatedLabel}</text>`;
+    });
     
-    // BUBBLE DATA POINTS - exactly positioned like Nivo ResponsiveScatterPlot
+    // BUBBLE DATA POINTS - exactly like Nivo ResponsiveScatterPlot
     data.forEach(point => {
-      const xIndex = uniqueDates.indexOf(point.date);
-      const yIndex = uniqueLabels.indexOf(point.label);
+      const labelIndex = uniqueLabels.indexOf(point.label);
+      const dateIndex = uniqueDates.indexOf(point.date);
       
-      if (xIndex >= 0 && yIndex >= 0) {
-        const x = margin.left + (xIndex * xStep);
-        const y = margin.top + (yIndex * yStep) + (yStep / 2);
+      if (labelIndex >= 0 && dateIndex >= 0) {
+        const x = margin.left + (dateIndex * xStep);
+        const y = margin.top + (labelIndex * yStep);
         
-        // Bubble size based on count - exactly like main app calculateBubbleSize
-        const radius = Math.max(3, Math.min(15, Math.sqrt(point.count) * 2));
+        // Color based on count intensity - exactly like main app
+        const intensity = Math.min(point.count / 5, 1); // Max intensity at count 5
+        const blueValue = Math.floor(100 + (155 * intensity)); // From light blue to dark blue
+        const fillColor = `rgb(${Math.floor(blueValue * 0.3)}, ${Math.floor(blueValue * 0.6)}, ${blueValue})`;
         
-        // Color based on frequency - exactly like main app
-        const frequency = labelMap.get(point.label)?.dates.length || 1;
-        let bubbleColor = '#CCCCFF'; // LOWEST
-        if (frequency >= 10) bubbleColor = '#6A0DAD'; // HIGHEST
-        else if (frequency >= 8) bubbleColor = '#9370DB'; // HIGH
-        else if (frequency >= 5) bubbleColor = '#B19CD9'; // MEDIUM  
-        else if (frequency >= 2) bubbleColor = '#CCCCFF'; // LOW
+        // Bubble size - exactly like main app
+        const radius = Math.max(3, Math.min(15, 3 + point.count * 2));
         
-        // Draw bubble with proper styling
-        svg += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${bubbleColor}" fill-opacity="0.7" stroke="${bubbleColor}" stroke-width="1">`;
-        svg += `<title>${point.label}: ${point.count} occurrences on ${point.date}</title>`;
+        svg += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${fillColor}" stroke="#fff" stroke-width="1" opacity="0.8">`;
+        svg += `<title>${point.label}: ${point.count} on ${point.date}</title>`;
         svg += `</circle>`;
+        
+        // Count labels on bubbles for better readability - exactly like main app
+        if (point.count > 0) {
+          svg += `<text x="${x}" y="${y + 3}" text-anchor="middle" font-family="Arial" font-size="8" fill="white" font-weight="bold">${point.count}</text>`;
+        }
       }
     });
     
-    // AXIS TITLES - exactly like main app
-    svg += `<text x="${margin.left + chartWidth/2}" y="${height - 15}" text-anchor="middle" font-family="Arial" font-size="10" fill="#666">Timeline (Days from Start)</text>`;
-    svg += `<text x="20" y="${margin.top + chartHeight/2}" text-anchor="middle" font-family="Arial" font-size="10" fill="#666" transform="rotate(-90, 20, ${margin.top + chartHeight/2})">Medical Items</text>`;
+    svg += `</svg>`;
+    return svg;
+  }
+
+  private generateEmptyChartSVG(title: string): string {
+    const width = 600;
+    const height = 400;
     
-    svg += '</svg>';
+    let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" style="background: white;">`;
+    svg += `<text x="${width/2}" y="30" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#333">${title}</text>`;
+    svg += `<rect x="50" y="60" width="${width-100}" height="${height-140}" fill="#f8f9fa" stroke="#e9ecef" stroke-width="1" rx="8"/>`;
+    svg += `<text x="${width/2}" y="${height/2}" text-anchor="middle" font-family="Arial" font-size="16" fill="#666">No data available</text>`;
+    svg += `<text x="${width/2}" y="${height/2 + 25}" text-anchor="middle" font-family="Arial" font-size="12" fill="#999">No symptoms found for this patient</text>`;
+    svg += `</svg>`;
     return svg;
   }
 
   async generateBubbleChart(data: BubbleChartDataPoint[], title: string): Promise<Buffer> {
+    const svgString = this.generateBubbleChartSVG(data, title);
+    
     try {
-      // Generate FULL medical-grade chart with axes, labels, and grid
-      const svgString = data.length === 0 ? 
-        this.generateEmptyChartSVG(title) : 
-        this.generateBubbleChartSVG(data, title);
-      
-      console.log(`🎯 Generated ${data.length} data points for chart: ${title}`);
-      console.log(`📊 SVG size: ${svgString.length} characters`);
-      
-      // Enhanced Sharp conversion with medical-grade quality
-      const pngBuffer = await sharp(Buffer.from(svgString))
-        .png({
-          quality: 95,         // Higher quality for medical charts
-          compressionLevel: 6,
-          adaptiveFiltering: true,  // Better for detailed charts
-          palette: false       // Preserve full color range
-        })
-        .resize(600, 400, { 
-          fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }
-        })
+      const buffer = await sharp(Buffer.from(svgString))
+        .png()
         .toBuffer();
       
-      console.log(`✅ Sharp converted detailed SVG to PNG: ${pngBuffer.length} bytes`);
-      
-      // Validate image size
-      if (pngBuffer.length < 1000) {
-        throw new Error(`PNG too small (${pngBuffer.length} bytes) - likely conversion failed`);
-      }
-      
-      return pngBuffer;
-      
+      return buffer;
     } catch (error) {
-      console.error('Error with Sharp chart generation:', error);
-      
-      // Enhanced Canvas fallback with FULL medical chart features
-      try {
-        console.log(`⚡ Sharp failed, using Canvas fallback with detailed medical chart`);
-        const { createCanvas } = await import('canvas');
-        const canvas = createCanvas(600, 400);
-        const ctx = canvas.getContext('2d');
-        
-        // Clear background
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, 600, 400);
-        ctx.strokeStyle = '#ccc';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(0, 0, 600, 400);
-        
-        // Chart margins and dimensions  
-        const margin = { top: 50, right: 40, bottom: 90, left: 150 };
-        const chartWidth = 600 - margin.left - margin.right;
-        const chartHeight = 400 - margin.top - margin.bottom;
-        
-        // Draw title
-        ctx.fillStyle = 'black';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(title, 300, 30);
-        
-        if (data.length === 0) {
-          ctx.font = '12px Arial';
-          ctx.fillStyle = 'gray';
-          ctx.fillText('No data available for this patient', 300, 200);
-        } else {
-          // Get unique labels and date range
-          const uniqueLabels = Array.from(new Set(data.map(d => d.label))).slice(0, 10);
-          const dates = data.map(d => d.originalDate!).filter(d => d).sort((a, b) => a.getTime() - b.getTime());
-          const minDate = dates[0];
-          const maxDate = dates[dates.length - 1];
-          const dayRange = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
-          
-          // Draw chart background
-          ctx.fillStyle = '#fafafa';
-          ctx.fillRect(margin.left, margin.top, chartWidth, chartHeight);
-          ctx.strokeStyle = '#ddd';
-          ctx.strokeRect(margin.left, margin.top, chartWidth, chartHeight);
-          
-          // Draw Y-axis labels and grid
-          ctx.fillStyle = '#666';
-          ctx.font = '8px Arial';
-          ctx.textAlign = 'right';
-          uniqueLabels.forEach((label, index) => {
-            const y = margin.top + (index + 0.5) * (chartHeight / uniqueLabels.length);
-            const truncatedLabel = label.length > 15 ? label.substring(0, 12) + '...' : label;
-            ctx.fillText(truncatedLabel, margin.left - 5, y + 3);
-            
-            // Grid line
-            ctx.strokeStyle = '#eee';
-            ctx.beginPath();
-            ctx.moveTo(margin.left, y);
-            ctx.lineTo(margin.left + chartWidth, y);
-            ctx.stroke();
-          });
-          
-          // Draw X-axis labels and grid
-          const xTicks = Math.min(8, dayRange + 1);
-          for (let i = 0; i <= xTicks; i++) {
-            const dayValue = (i / xTicks) * dayRange;
-            const x = margin.left + (i / xTicks) * chartWidth;
-            const date = new Date(minDate.getTime() + dayValue * 24 * 60 * 60 * 1000);
-            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            
-            ctx.textAlign = 'center';
-            ctx.fillText(dateStr, x, margin.top + chartHeight + 15);
-            
-            ctx.strokeStyle = '#eee';
-            ctx.beginPath();
-            ctx.moveTo(x, margin.top);
-            ctx.lineTo(x, margin.top + chartHeight);
-            ctx.stroke();
-          }
-          
-          // Draw bubbles
-          ctx.fillStyle = 'rgba(75, 192, 192, 0.6)';
-          ctx.strokeStyle = 'rgba(75, 192, 192, 1)';
-          data.forEach(point => {
-            const x = margin.left + (point.x / dayRange) * chartWidth;
-            const y = margin.top + (point.y + 0.5) * (chartHeight / uniqueLabels.length);
-            const radius = Math.max(2, Math.min(12, point.r));
-            
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
-          });
-          
-          // Axis titles
-          ctx.fillStyle = '#666';
-          ctx.font = '10px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText('Days from Start', margin.left + chartWidth/2, 400 - 15);
-          
-          ctx.save();
-          ctx.translate(15, margin.top + chartHeight/2);
-          ctx.rotate(-Math.PI/2);
-          ctx.fillText('Items', 0, 0);
-          ctx.restore();
-        }
-        
-        const buffer = canvas.toBuffer('image/png');
-        console.log(`✅ Canvas fallback with medical axes PNG: ${buffer.length} bytes`);
-        
-        // Validate canvas output
-        if (buffer.length < 1000) {
-          throw new Error(`Canvas PNG too small (${buffer.length} bytes)`);
-        }
-        
-        return buffer;
-        
-      } catch (canvasError) {
-        console.error('Canvas fallback failed:', canvasError);
-        // Final fallback to SVG
-        const fallbackSvg = this.generateEmptyChartSVG(title + ' - Chart Error');
-        return Buffer.from(fallbackSvg, 'utf8');
-      }
+      console.error('Error converting SVG to PNG:', error);
+      throw error;
     }
   }
 
-  generateEmptyChartSVG(title: string): string {
-    const width = 450;
-    const height = 300;
-    
-    let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
-    svg += `<rect width="${width}" height="${height}" fill="white" stroke="#ccc" stroke-width="1"/>`;
-    svg += `<text x="${width/2}" y="30" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">${title}</text>`;
-    svg += `<text x="${width/2}" y="${height/2}" text-anchor="middle" font-family="Arial" font-size="12" fill="#666">No data available for this patient</text>`;
-    svg += '</svg>';
-    
-    return svg;
-  }
-
-  generateSimplifiedSVG(data: BubbleChartDataPoint[], title: string): string {
-    const width = 450;
-    const height = 300;
-    
-    let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
-    svg += `<rect width="${width}" height="${height}" fill="white"/>`;
-    svg += `<text x="${width/2}" y="25" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">${title}</text>`;
-    
-    if (data.length === 0) {
-      svg += `<text x="${width/2}" y="${height/2}" text-anchor="middle" font-family="Arial" font-size="12" fill="#666">No data available</text>`;
-    } else {
-      // Draw simplified bubble chart
-      const maxValue = Math.max(...data.map(d => d.count || 1));
-      const chartX = 50;
-      const chartY = 50;
-      const chartWidth = 350;
-      const chartHeight = 200;
-      
-      // Draw simple grid
-      svg += `<line x1="${chartX}" y1="${chartY + chartHeight}" x2="${chartX + chartWidth}" y2="${chartY + chartHeight}" stroke="#ddd" stroke-width="1"/>`;
-      svg += `<line x1="${chartX}" y1="${chartY}" x2="${chartX}" y2="${chartY + chartHeight}" stroke="#ddd" stroke-width="1"/>`;
-      
-      // Draw bubbles in grid layout
-      data.slice(0, 10).forEach((point, index) => {
-        const col = index % 5;
-        const row = Math.floor(index / 5);
-        const x = chartX + (col * 60) + 30;
-        const y = chartY + (row * 80) + 40;
-        const radius = Math.max(8, Math.min(25, (point.count || 1) / maxValue * 20 + 5));
-        const color = `hsl(${(index * 137.5) % 360}, 65%, 55%)`;
-        
-        // Draw bubble
-        svg += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="rgba(0,0,0,0.3)" stroke-width="1"/>`;
-        
-        // Draw value in center
-        svg += `<text x="${x}" y="${y + 4}" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="white">${point.count || 0}</text>`;
-        
-        // Draw label below
-        const label = point.label.length > 12 ? point.label.substring(0, 9) + '...' : point.label;
-        svg += `<text x="${x}" y="${y + radius + 15}" text-anchor="middle" font-family="Arial" font-size="9" fill="black">${label}</text>`;
-      });
-    }
-    
-    svg += '</svg>';
-    return svg;
-  }
-
-  async generateEmptyChart(title: string): Promise<Buffer> {
+  generateEmptyChart(title: string): Buffer {
     const svgString = this.generateEmptyChartSVG(title);
-    return Buffer.from(svgString, 'utf8');
-  }
-
-  // Convert patient data to bubble chart format
-  processSymptomData(symptoms: any[]): BubbleChartDataPoint[] {
-    const symptomCounts = new Map<string, number>();
     
-    symptoms.forEach(symptom => {
-      const key = symptom.symptom_segment || symptom.symptom_wording || 'Unknown';
-      symptomCounts.set(key, (symptomCounts.get(key) || 0) + 1);
-    });
-
-    return Array.from(symptomCounts.entries()).map(([label, count], index) => ({
-      x: Math.random() * 80 + 10, // Random positioning for now
-      y: Math.random() * 80 + 10,
-      r: Math.max(5, Math.min(25, count * 3)),
-      label,
-      count
-    }));
-  }
-
-  processDiagnosisData(symptoms: any[]): BubbleChartDataPoint[] {
-    const diagnosisCounts = new Map<string, number>();
-    
-    symptoms.forEach(symptom => {
-      const diagnosis = symptom.diagnosis || 'No Diagnosis';
-      diagnosisCounts.set(diagnosis, (diagnosisCounts.get(diagnosis) || 0) + 1);
-    });
-
-    return Array.from(diagnosisCounts.entries()).map(([label, count], index) => ({
-      x: Math.random() * 80 + 10,
-      y: Math.random() * 80 + 10,
-      r: Math.max(5, Math.min(25, count * 3)),
-      label,
-      count
-    }));
-  }
-
-  processHRSNData(symptoms: any[]): BubbleChartDataPoint[] {
-    const hrsnCounts = new Map<string, number>();
-    
-    symptoms.forEach(symptom => {
-      // Look for HRSN indicators
-      if (symptom.symp_prob === 'Problem' || symptom.financial_strain === 'Yes') {
-        const key = symptom.symptom_segment || 'HRSN Issue';
-        hrsnCounts.set(key, (hrsnCounts.get(key) || 0) + 1);
-      }
-    });
-
-    return Array.from(hrsnCounts.entries()).map(([label, count], index) => ({
-      x: Math.random() * 80 + 10,
-      y: Math.random() * 80 + 10,
-      r: Math.max(5, Math.min(25, count * 3)),
-      label,
-      count
-    }));
-  }
-
-  processCategoryData(symptoms: any[]): BubbleChartDataPoint[] {
-    const categoryCounts = new Map<string, number>();
-    
-    symptoms.forEach(symptom => {
-      const category = symptom.diagnostic_category || 'Uncategorized';
-      categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
-    });
-
-    return Array.from(categoryCounts.entries()).map(([label, count], index) => ({
-      x: Math.random() * 80 + 10,
-      y: Math.random() * 80 + 10,
-      r: Math.max(5, Math.min(25, count * 3)),
-      label,
-      count
-    }));
+    try {
+      // For empty charts, we can return a simple buffer directly
+      return Buffer.from(svgString);
+    } catch (error) {
+      console.error('Error generating empty chart:', error);
+      // Return a minimal fallback
+      return Buffer.from('<svg width="600" height="400"><text x="300" y="200" text-anchor="middle">Error generating chart</text></svg>');
+    }
   }
 }

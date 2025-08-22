@@ -38,12 +38,6 @@ async function setupServer() {
       // Import session and auth setup
       const { setupAuth } = await import('./auth');
       
-      // Configure proxy/trust behavior for TLS termination (nginx, ingress)
-      if (process.env.TRUST_PROXY === '1') {
-        app.set('trust proxy', 1);
-        console.log('🔁 trust proxy enabled (TRUST_PROXY=1)');
-      }
-
       // Setup authentication first
       setupAuth(app);
       

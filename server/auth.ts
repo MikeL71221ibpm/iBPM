@@ -51,14 +51,8 @@ export function setupAuth(app: Express) {
 
   // Determine if we're in a secure (HTTPS) environment
   const isProduction = process.env.NODE_ENV === 'production';
-  // Allow overriding production->secure behavior with FORCE_HTTPS (set to 'true' when TLS is present)
-  // TRUST_PROXY=1 signals that the app is behind a proxy which may terminate TLS (nginx, ingress)
-  // REPL_SLUG indicates a Replit deployment which uses HTTPS
-  const forceHttps = process.env.FORCE_HTTPS === 'true';
-  const trustProxy = process.env.TRUST_PROXY === '1';
-  const isReplit = !!process.env.REPL_SLUG;
-  // Only treat environment as secure when either we're in Replit, trust proxy is enabled, or FORCE_HTTPS is set in production
-  const isSecureEnvironment = isReplit || trustProxy || (isProduction && forceHttps);
+  // In Replit workspace (development), we use HTTP, not HTTPS
+  const isSecureEnvironment = isProduction; // Only production uses HTTPS
   
   // Generate unique cookie name based on environment to prevent cross-contamination
   const cookieName = isSecureEnvironment ? 'ibpm.prod.sid' : 'ibpm.dev.sid';
