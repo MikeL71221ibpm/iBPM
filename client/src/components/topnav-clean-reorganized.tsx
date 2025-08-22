@@ -57,6 +57,54 @@ export default function TopNavCleanReorganized() {
   
   const isAdmin = user?.id === 1 || user?.id === 2;
   
+  // Helper function to determine if a route is active
+  const isRouteActive = (route: string, exactMatch = false) => {
+    if (exactMatch) {
+      return location === route;
+    }
+    
+    // Handle special cases for routes with parameters
+    let isActive = false;
+    switch (route) {
+      case '/home':
+        isActive = location === '/home' || location.startsWith('/home/');
+        break;
+      case '/population-health':
+        isActive = location === '/' || location === '/population-health' || location.startsWith('/population-health/');
+        break;
+      case '/pivot-tables':
+        isActive = location === '/pivot-tables' || location.startsWith('/direct-grid-view/');
+        break;
+      case '/heatmaps2':
+        isActive = location === '/heatmaps2' || location.startsWith('/heatmaps2/') || location.startsWith('/nivo-heatmap-view/');
+        break;
+      case '/bubble-charts':
+        isActive = location === '/bubble-charts' || location.startsWith('/bubble-charts/') || location.startsWith('/nivo-scatter-view-themed');
+        break;
+      case '/upload':
+        isActive = location === '/upload' || location.startsWith('/upload/');
+        break;
+      case '/daily-reports':
+        isActive = location === '/daily-reports' || location.startsWith('/daily-reports/');
+        break;
+      case '/receipts':
+        isActive = location === '/receipts' || location === '/receipt' || location.startsWith('/receipt/') || location.startsWith('/receipts/');
+        break;
+      case '/admin':
+        isActive = location === '/admin' || location.startsWith('/admin/');
+        break;
+      default:
+        isActive = location === route || location.startsWith(route + '/');
+    }
+    
+    // Debug logging for route matching
+    if (isActive && process.env.NODE_ENV === 'development') {
+      console.log(`🔵 Route ${route} is ACTIVE for location: ${location}`);
+    }
+    
+    return isActive;
+  };
+  
   return (
     <nav className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50 shadow-sm">
       <div className="w-full max-w-full px-4">
@@ -76,9 +124,13 @@ export default function TopNavCleanReorganized() {
             <div className="flex items-center space-x-0.5 pl-2">
               <Link href="/pivot-tables">
                 <Button
-                  variant={location === "/pivot-tables" ? "default" : "ghost"}
+                  variant={isRouteActive("/pivot-tables") ? "default" : "ghost"}
                   size="sm"
-                  className="text-xs px-2 py-1 h-7 flex items-center gap-1.5"
+                  className={`text-xs px-2 py-1 h-7 flex items-center gap-1.5 ${
+                    isRouteActive("/pivot-tables") 
+                      ? "!bg-blue-600 !text-white !font-semibold !border-2 !border-blue-700 !shadow-md" 
+                      : "!bg-transparent !text-gray-700 hover:!bg-gray-100"
+                  }`}
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
                   <span className="inline">Pivot Tables</span>
@@ -87,9 +139,13 @@ export default function TopNavCleanReorganized() {
               
               <Link href="/heatmaps2">
                 <Button
-                  variant={location === "/heatmaps2" || location.startsWith("/heatmaps2/") ? "default" : "ghost"}
+                  variant={isRouteActive("/heatmaps2") ? "default" : "ghost"}
                   size="sm"
-                  className="text-xs px-2 py-1 h-7 flex items-center gap-1.5"
+                  className={`text-xs px-2 py-1 h-7 flex items-center gap-1.5 ${
+                    isRouteActive("/heatmaps2") 
+                      ? "!bg-blue-600 !text-white !font-semibold !border-2 !border-blue-700 !shadow-md" 
+                      : "!bg-transparent !text-gray-700 hover:!bg-gray-100"
+                  }`}
                 >
                   <BarChart className="w-3.5 h-3.5" />
                   <span className="inline">Heatmaps</span>
@@ -98,9 +154,13 @@ export default function TopNavCleanReorganized() {
               
               <Link href="/bubble-charts">
                 <Button
-                  variant={location === "/bubble-charts" || location.startsWith("/bubble-charts/") || location.startsWith("/nivo-scatter-view-themed") ? "default" : "ghost"}
+                  variant={isRouteActive("/bubble-charts") ? "default" : "ghost"}
                   size="sm"
-                  className="text-xs px-2 py-1 h-7 flex items-center gap-1.5"
+                  className={`text-xs px-2 py-1 h-7 flex items-center gap-1.5 ${
+                    isRouteActive("/bubble-charts") 
+                      ? "!bg-blue-600 !text-white !font-semibold !border-2 !border-blue-700 !shadow-md" 
+                      : "!bg-transparent !text-gray-700 hover:!bg-gray-100"
+                  }`}
                 >
                   <Circle className="w-3.5 h-3.5" />
                   <span className="inline">Bubble Charts</span>
@@ -120,9 +180,13 @@ export default function TopNavCleanReorganized() {
           <div className="flex items-center space-x-1">
             <Link href="/home">
               <Button
-                variant={location === "/home" ? "default" : "ghost"}
+                variant={isRouteActive("/home") ? "default" : "ghost"}
                 size="sm"
-                className="text-sm px-3 py-1.5 h-9 flex items-center gap-2"
+                className={`text-sm px-3 py-1.5 h-9 flex items-center gap-2 ${
+                  isRouteActive("/home") 
+                    ? "bg-blue-600 text-white font-semibold border-2 border-blue-700 shadow-md" 
+                    : "bg-transparent text-gray-700 hover:bg-gray-100"
+                }`}
               >
                 <Search className="w-4 h-4" />
                 <span className="inline">Search</span>
@@ -131,9 +195,13 @@ export default function TopNavCleanReorganized() {
             
             <Link href="/population-health">
               <Button
-                variant={location === "/population-health" ? "default" : "ghost"}
+                variant={isRouteActive("/population-health") ? "default" : "ghost"}
                 size="sm"
-                className="text-sm px-3 py-1.5 h-9 flex items-center gap-2"
+                className={`text-sm px-3 py-1.5 h-9 flex items-center gap-2 ${
+                  isRouteActive("/population-health") 
+                    ? "bg-blue-600 text-white font-semibold border-2 border-blue-700 shadow-md" 
+                    : "bg-transparent text-gray-700 hover:bg-gray-100"
+                }`}
               >
                 <LineChart className="w-4 h-4" />
                 <span className="inline">Population Health</span>
@@ -142,9 +210,13 @@ export default function TopNavCleanReorganized() {
             
             <Link href="/upload">
               <Button
-                variant={location === "/upload" ? "default" : "ghost"}
+                variant={isRouteActive("/upload") ? "default" : "ghost"}
                 size="sm"
-                className="text-sm px-3 py-1.5 h-9 flex items-center gap-2"
+                className={`text-sm px-3 py-1.5 h-9 flex items-center gap-2 ${
+                  isRouteActive("/upload") 
+                    ? "bg-blue-600 text-white font-semibold border-2 border-blue-700 shadow-md" 
+                    : "bg-transparent text-gray-700 hover:bg-gray-100"
+                }`}
               >
                 <Upload className="w-4 h-4" />
                 <span className="inline">Upload Data</span>
@@ -153,9 +225,13 @@ export default function TopNavCleanReorganized() {
             
             <Link href="/daily-reports">
               <Button
-                variant={location === "/daily-reports" ? "default" : "ghost"}
+                variant={isRouteActive("/daily-reports") ? "default" : "ghost"}
                 size="sm"
-                className="text-sm px-3 py-1.5 h-9 flex items-center gap-2"
+                className={`text-sm px-3 py-1.5 h-9 flex items-center gap-2 ${
+                  isRouteActive("/daily-reports") 
+                    ? "bg-blue-600 text-white font-semibold border-2 border-blue-700 shadow-md" 
+                    : "bg-transparent text-gray-700 hover:bg-gray-100"
+                }`}
               >
                 <FileText className="w-4 h-4" />
                 <span className="inline">Daily Reports</span>
@@ -168,9 +244,13 @@ export default function TopNavCleanReorganized() {
             {/* Admin Functions */}
             <Link href="/receipts">
               <Button
-                variant={location === "/receipts" ? "default" : "ghost"}
+                variant={isRouteActive("/receipts") ? "default" : "ghost"}
                 size="sm"
-                className="text-sm px-3 py-1.5 h-9 flex items-center gap-2"
+                className={`text-sm px-3 py-1.5 h-9 flex items-center gap-2 ${
+                  isRouteActive("/receipts") 
+                    ? "!bg-blue-600 !text-white !font-semibold !border-2 !border-blue-700 !shadow-md" 
+                    : "!bg-transparent !text-gray-700 hover:!bg-gray-100"
+                }`}
               >
                 <CreditCard className="w-4 h-4" />
                 <span className="inline">Billing</span>
@@ -179,9 +259,13 @@ export default function TopNavCleanReorganized() {
             
             <Link href="/admin">
               <Button
-                variant={location === "/admin" ? "default" : "ghost"}
+                variant={isRouteActive("/admin") ? "default" : "ghost"}
                 size="sm"
-                className="text-sm px-3 py-1.5 h-9 flex items-center gap-2"
+                className={`text-sm px-3 py-1.5 h-9 flex items-center gap-2 ${
+                  isRouteActive("/admin") 
+                    ? "!bg-blue-600 !text-white !font-semibold !border-2 !border-blue-700 !shadow-md" 
+                    : "!bg-transparent !text-gray-700 hover:!bg-gray-100"
+                }`}
               >
                 <Settings className="w-4 h-4" />
                 <span className="inline">Admin</span>

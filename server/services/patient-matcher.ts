@@ -30,11 +30,23 @@ export class PatientMatcher {
   constructor(private userId: number) {}
 
   async matchBatch(scheduledPatients: ScheduledPatient[]): Promise<BatchMatchResult> {
+    console.log(`🚀 PARALLEL PATIENT MATCHING: Processing ${scheduledPatients.length} patients with batch optimization`);
+    
+    // PERMANENT PARALLEL PROCESSING: Process patient matching in parallel batches
+    const BATCH_SIZE = 10; // Optimal batch size for patient matching operations
     const matches: MatchResult[] = [];
     
-    for (const scheduled of scheduledPatients) {
-      const match = await this.matchSinglePatient(scheduled);
-      matches.push(match);
+    // Process in parallel batches for maximum efficiency
+    for (let i = 0; i < scheduledPatients.length; i += BATCH_SIZE) {
+      const batch = scheduledPatients.slice(i, i + BATCH_SIZE);
+      console.log(`🔍 PARALLEL MATCHING batch ${Math.floor(i/BATCH_SIZE) + 1}: ${batch.length} patients`);
+      
+      // PARALLEL EXECUTION: All patients in this batch match simultaneously
+      const batchPromises = batch.map(scheduled => this.matchSinglePatient(scheduled));
+      const batchMatches = await Promise.all(batchPromises);
+      matches.push(...batchMatches);
+      
+      console.log(`✅ PARALLEL MATCH COMPLETE: ${i + batch.length}/${scheduledPatients.length} patients processed`);
     }
 
     const summary = {

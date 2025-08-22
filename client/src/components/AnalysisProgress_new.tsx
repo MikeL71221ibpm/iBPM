@@ -163,7 +163,7 @@ export function AnalysisProgress({ isAnalyzing, onComplete, onProgressUpdate }: 
           if (progressData.serverProgressCounter >= 2) {
             // Allow fake progress to take over regardless of real progress
             if (progressData.fakeProgress < 90) {
-              progressData.fakeProgress += 5;
+              progressData.fakeProgress = Math.min(progressData.fakeProgress + 5, 100);
               setProgress(progressData.fakeProgress);
               const newMessage = `Processing data... (estimated ${progressData.fakeProgress}% complete)`;
               setMessage(newMessage);
@@ -176,11 +176,11 @@ export function AnalysisProgress({ isAnalyzing, onComplete, onProgressUpdate }: 
             }
           } else if (progressData.fakeProgress < 90) {
             // Normal mode - only show fake progress if it exceeds real progress
-            progressData.fakeProgress += 3; // Slower increment in normal mode
+            progressData.fakeProgress = Math.min(progressData.fakeProgress + 3, 100); // Cap at 100%
             
             // Only update if the fake progress exceeds real progress
             if (progressData.fakeProgress > progress) {
-              const newProgress = progressData.fakeProgress;
+              const newProgress = Math.min(progressData.fakeProgress, 100);
               const newMessage = `Processing data... (estimated ${newProgress}% complete)`;
               
               setProgress(newProgress);
@@ -223,16 +223,17 @@ export function AnalysisProgress({ isAnalyzing, onComplete, onProgressUpdate }: 
             
             // Update progress if provided
             if (typeof data.progress === 'number') {
-              setProgress(data.progress);
+              const cappedProgress = Math.min(data.progress, 100);
+              setProgress(cappedProgress);
               
               // Update fake progress to match real progress if it's higher
-              if (data.progress > progressData.fakeProgress) {
-                progressData.fakeProgress = data.progress;
+              if (cappedProgress > progressData.fakeProgress) {
+                progressData.fakeProgress = cappedProgress;
               }
               
               // Notify parent of progress update
               if (onProgressUpdate) {
-                onProgressUpdate(data.progress, data.message || message);
+                onProgressUpdate(cappedProgress, data.message || message);
               }
             }
             
@@ -295,15 +296,16 @@ export function AnalysisProgress({ isAnalyzing, onComplete, onProgressUpdate }: 
         const now = Date.now();
         if (now - progressData.lastProgressTime > 15000) { // 15 seconds
           if (progressData.fakeProgress < 90) {
-            progressData.fakeProgress += 2;
-            setProgress(progressData.fakeProgress);
-            const newMessage = `Processing data... (estimated ${progressData.fakeProgress}% complete)`;
+            progressData.fakeProgress = Math.min(progressData.fakeProgress + 2, 100);
+            const cappedProgress = Math.min(progressData.fakeProgress, 100);
+            setProgress(cappedProgress);
+            const newMessage = `Processing data... (estimated ${cappedProgress}% complete)`;
             setMessage(newMessage);
-            console.log(`Using emergency fake progress: ${progressData.fakeProgress}%`);
+            console.log(`Using emergency fake progress: ${cappedProgress}%`);
             
             // Update parent with emergency fake progress
             if (onProgressUpdate) {
-              onProgressUpdate(progressData.fakeProgress, newMessage);
+              onProgressUpdate(cappedProgress, newMessage);
             }
           }
         }

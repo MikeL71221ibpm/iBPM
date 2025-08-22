@@ -86,6 +86,10 @@ router.post('/upload', isAuthenticated, upload.single('schedule'), async (req, r
 
     console.log('✅ Authenticated user:', user.id);
 
+    // Get grid format preference from form data
+    const useGridFormat = req.body.useGridFormat === 'true';
+    console.log('🔧 Grid format preference:', useGridFormat);
+
     const jobId = randomUUID();
     const userId = user.id;
 
@@ -99,8 +103,8 @@ router.post('/upload', isAuthenticated, upload.single('schedule'), async (req, r
 
     console.log(`🎯 Created processing job: ${jobId}`);
 
-    // Start async processing - pass original filename to help with detection
-    processScheduleFile(jobId, req.file.path, userId, req.file.originalname).catch(async (error) => {
+    // Start async processing - pass original filename and grid format preference
+    processScheduleFile(jobId, req.file.path, userId, req.file.originalname, useGridFormat).catch(async (error) => {
       console.error('❌ Processing error in async handler:', error);
       await jobPersistence.updateJob(jobId, {
         status: 'error',
@@ -204,7 +208,7 @@ router.get('/status/:jobId', isAuthenticated, async (req, res) => {
 router.get('/download/:jobId', isAuthenticated, async (req, res) => {
   try {
     const { jobId } = req.params;
-    console.log(`🔍 Download request for job: ${jobId}`);
+    console.log(`🔍 PRODUCTION DOWNLOAD REQUEST for job: ${jobId}`);
     
     const user = req.user as any;
     if (!user?.id) {
@@ -212,80 +216,223 @@ router.get('/download/:jobId', isAuthenticated, async (req, res) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // PRODUCTION FIX: Check for PDF file directly on disk (job may be lost from memory)
+    // PRODUCTION FIX: Enhanced disk-first, memory-fallback architecture (V3.6.6 WORKING APPROACH)
     const pdfDir = 'uploads/daily-reports/pdfs';
-    const pdfPath = path.join(pdfDir, `${jobId}.pdf`);
     
-    console.log(`🔍 Checking for PDF file at: ${pdfPath}`);
+    // Ensure PDF directory exists
+    try {
+      await fs.mkdir(pdfDir, { recursive: true });
+    } catch (mkdirError) {
+      console.log(`📁 Directory creation info:`, mkdirError);
+    }
+    
+    const pdfPath = path.join(pdfDir, `${jobId}.pdf`);
+    console.log(`🔍 PRODUCTION: Checking PDF at: ${pdfPath}`);
     
     try {
-      // Check if PDF file exists on disk
+      // Check if PDF file exists on disk with enhanced validation
       const stats = await fs.stat(pdfPath);
-      console.log(`✅ PDF file found: ${pdfPath} (${stats.size} bytes)`);
+      console.log(`✅ PRODUCTION: PDF found - Size: ${stats.size} bytes, Modified: ${stats.mtime}`);
       
-      // Read and send PDF file directly
+      // Validate PDF file size (must be > 50KB for a real report)
+      if (stats.size < 51200) {
+        console.log(`⚠️  PRODUCTION WARNING: PDF file too small (${stats.size} bytes), checking job data...`);
+        throw new Error(`PDF file appears corrupted or incomplete (${stats.size} bytes)`);
+      }
+      
+      // Use streaming for large files (>10MB) to prevent memory issues
+      if (stats.size > 10 * 1024 * 1024) {
+        console.log(`📊 PRODUCTION: Large PDF detected (${stats.size} bytes), using streaming`);
+        
+        const filename = `daily-patient-reports-${new Date().toISOString().split('T')[0]}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', stats.size.toString());
+        res.setHeader('Cache-Control', 'no-cache');
+        
+        // Stream the file for memory efficiency
+        const { createReadStream } = await import('fs');
+        const stream = createReadStream(pdfPath);
+        
+        stream.on('error', (streamError) => {
+          console.error(`❌ PRODUCTION STREAM ERROR:`, streamError);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'File streaming failed' });
+          }
+        });
+        
+        stream.pipe(res);
+        console.log(`✅ PRODUCTION: Streaming large PDF: ${filename}`);
+        return;
+      }
+      
+      // For smaller files, read into memory
+      console.log(`📄 PRODUCTION: Reading PDF into memory (${stats.size} bytes)`);
       const fileBuffer = await fs.readFile(pdfPath);
+      
+      // Validate buffer
+      if (!fileBuffer || fileBuffer.length === 0) {
+        throw new Error('PDF file is empty or corrupted');
+      }
+      
+      // Validate PDF header
+      const pdfHeader = fileBuffer.slice(0, 4).toString();
+      if (pdfHeader !== '%PDF') {
+        throw new Error('File is not a valid PDF');
+      }
       
       const filename = `daily-patient-reports-${new Date().toISOString().split('T')[0]}.pdf`;
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Length', stats.size.toString());
+      res.setHeader('Content-Length', fileBuffer.length.toString());
+      res.setHeader('Cache-Control', 'no-cache');
       
-      console.log(`✅ Sending PDF file: ${filename} (${fileBuffer.length} bytes)`);
+      console.log(`✅ PRODUCTION SUCCESS: Sending PDF: ${filename} (${fileBuffer.length} bytes)`);
       res.send(fileBuffer);
       return;
       
     } catch (fileError) {
-      console.log(`📁 PDF file not found on disk: ${pdfPath}`);
-      console.log(`📁 File error details:`, fileError);
+      console.log(`🔧 PRODUCTION FALLBACK: PDF file issue - ${fileError.message}`);
+      console.log(`🔧 PRODUCTION: Checking persistent storage...`);
       
-      // Fallback: Check persistent storage for job data
+      // Enhanced fallback: Check persistent storage for job data
       const job = await jobPersistence.getJob(jobId);
-      console.log(`🔍 Persistent storage check - Job ${jobId} exists: ${!!job}`);
+      console.log(`🔍 PRODUCTION: Job ${jobId} exists in storage: ${!!job}`);
       
       if (!job) {
-        console.log(`❌ Job ${jobId} not found in persistent storage and no PDF on disk`);
+        console.log(`❌ PRODUCTION ERROR: Job ${jobId} not found anywhere`);
         
         return res.status(404).json({ 
-          error: 'Report not found',
-          details: 'This report may have expired, been cleaned up, or failed to generate. Please try uploading your schedule again.',
+          error: 'Download Failed',
+          details: 'Report not found. This may indicate a server restart occurred during processing. Please try uploading your schedule again.',
           jobId: jobId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          suggestion: 'Upload your schedule file again to regenerate the reports.'
         });
       }
 
       // Verify user access for persistent job
       if (job.userId !== user.id) {
-        console.log(`❌ Access denied for job ${jobId}: user=${user.id}, jobUser=${job.userId}`);
+        console.log(`❌ PRODUCTION: Access denied for job ${jobId}: user=${user.id}, jobUser=${job.userId}`);
         return res.status(403).json({ error: 'Access denied' });
       }
 
       if (job.status !== 'completed') {
-        console.log(`⏳ Job ${jobId} not completed: ${job.status}`);
-        return res.status(400).json({ error: 'Reports not ready yet' });
+        console.log(`⏳ PRODUCTION: Job ${jobId} status: ${job.status}`);
+        return res.status(400).json({ 
+          error: 'Reports not ready',
+          status: job.status,
+          details: job.status === 'error' ? job.error : 'Processing still in progress'
+        });
       }
 
-      if (!job.result?.pdfPath && !job.pdfPath) {
-        console.log(`❌ Job ${jobId} has no PDF path in result`);
-        return res.status(404).json({ error: 'PDF file not found' });
-      }
-
-      // Try to read from job's stored path
-      const pdfFilePath = job.pdfPath || job.result?.pdfPath;
-      const jobFileBuffer = await fs.readFile(pdfFilePath);
-      const filename = `daily-patient-reports-${new Date().toISOString().split('T')[0]}.pdf`;
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.send(jobFileBuffer);
+      // SECURE RECOVERY: Only look for PDFs belonging to this specific user's job
+      console.log(`🔐 PRODUCTION: Searching for alternative PDF paths for user ${user.id}, job ${jobId}...`);
       
-      console.log(`✅ Sent PDF from job path: ${pdfFilePath}`);
+      try {
+        // Look for backup PDFs created for this specific job
+        const backupPatterns = [
+          path.join(pdfDir, `backup-*-${jobId}.pdf`),
+          path.join(pdfDir, `${jobId}-backup.pdf`),
+          path.join(pdfDir, `${jobId}.pdf`)
+        ];
+        
+        console.log(`🔐 PRODUCTION: Checking backup PDF patterns for job ${jobId}`);
+        
+        for (const pattern of backupPatterns) {
+          try {
+            // Check if exact job file exists
+            if (pattern.includes('*')) {
+              // Handle glob pattern for backup files
+              const pdfFiles = await fs.readdir(pdfDir);
+              const jobBackups = pdfFiles.filter(f => 
+                f.includes(jobId) && f.endsWith('.pdf') && f.includes('backup')
+              );
+              
+              for (const backupFile of jobBackups) {
+                const backupPath = path.join(pdfDir, backupFile);
+                const stats = await fs.stat(backupPath);
+                
+                if (stats.size > 1048576) { // Valid size check
+                  const pdfBuffer = await fs.readFile(backupPath);
+                  
+                  if (pdfBuffer.slice(0, 4).toString() === '%PDF') {
+                    console.log(`🔐 PRODUCTION: Found user's backup PDF: ${backupPath}`);
+                    
+                    const filename = `daily-patient-reports-${new Date().toISOString().split('T')[0]}.pdf`;
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                    res.setHeader('Content-Length', pdfBuffer.length.toString());
+                    res.setHeader('Cache-Control', 'no-cache');
+                    
+                    if (pdfBuffer.length > 10485760) { // >10MB
+                      console.log(`🔐 PRODUCTION: Streaming large backup PDF: ${(pdfBuffer.length / 1048576).toFixed(1)}MB`);
+                      res.write(pdfBuffer);
+                      res.end();
+                    } else {
+                      res.send(pdfBuffer);
+                    }
+                    
+                    console.log(`✅ SECURE RECOVERY SUCCESS: Served user's backup PDF: ${backupPath}`);
+                    return;
+                  }
+                }
+              }
+            } else {
+              // Direct path check
+              const stats = await fs.stat(pattern);
+              if (stats.size > 1048576) {
+                const pdfBuffer = await fs.readFile(pattern);
+                
+                if (pdfBuffer.slice(0, 4).toString() === '%PDF') {
+                  console.log(`🔐 PRODUCTION: Found user's PDF: ${pattern}`);
+                  
+                  const filename = `daily-patient-reports-${new Date().toISOString().split('T')[0]}.pdf`;
+                  res.setHeader('Content-Type', 'application/pdf');
+                  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                  res.setHeader('Content-Length', pdfBuffer.length.toString());
+                  res.setHeader('Cache-Control', 'no-cache');
+                  
+                  if (pdfBuffer.length > 10485760) { // >10MB
+                    res.write(pdfBuffer);
+                    res.end();
+                  } else {
+                    res.send(pdfBuffer);
+                  }
+                  
+                  console.log(`✅ SECURE RECOVERY SUCCESS: Served user's PDF: ${pattern}`);
+                  return;
+                }
+              }
+            }
+          } catch (patternError) {
+            console.log(`🔐 PRODUCTION: Pattern ${pattern} not found: ${patternError.message}`);
+          }
+        }
+        
+        console.log(`🔐 PRODUCTION: No valid backup PDFs found for user ${user.id}, job ${jobId}`);
+        
+      } catch (scanError) {
+        console.log(`🔐 PRODUCTION: Secure PDF scan failed: ${scanError.message}`);
+      }
+      
+      // Final fallback failed
+      console.log(`❌ PRODUCTION FINAL ERROR: All PDF recovery attempts failed`);
+      return res.status(404).json({ 
+        error: 'Download Failed',
+        details: 'No valid PDF reports found. This can happen if the files were cleaned up or if there was a processing error.',
+        suggestion: 'Please upload your schedule again to regenerate the reports. Processing typically takes 1-2 minutes.',
+        jobId: jobId,
+        technicalInfo: 'PDF files may have been cleaned up due to server maintenance or disk space management.'
+      });
     }
 
   } catch (error) {
-    console.error('❌ Download error:', error);
+    console.error('❌ PRODUCTION DOWNLOAD ERROR:', error);
     res.status(500).json({ 
       error: 'Download failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      suggestion: 'Please try again or upload your schedule file again.'
     });
   }
 });
@@ -315,7 +462,7 @@ router.get('/results/:jobId', isAuthenticated, async (req, res) => {
   });
 });
 
-async function processScheduleFile(jobId: string, filePath: string, userId: number, originalFilename?: string) {
+async function processScheduleFile(jobId: string, filePath: string, userId: number, originalFilename?: string, useGridFormat: boolean = false) {
   let job = await jobPersistence.getJob(jobId);
   if (!job) return;
 
@@ -339,24 +486,39 @@ async function processScheduleFile(jobId: string, filePath: string, userId: numb
     console.log(`🔄 Patient matching completed for job ${jobId}`);
     
     // Step 3: Generate reports (70% progress)
-    updateProgress(70);
+    await updateProgress(70);
     const reportGenerator = new ReportGenerator(userId);
     
-    console.log(`🔄 Starting report generation for ${matchResults.matches.length} patients`);
+    console.log(`🔄 Starting report generation for ${matchResults.matches.length} patients (${useGridFormat ? 'GRID' : 'LINEAR'} format)`);
     
-    const reportResults = await reportGenerator.generateBatchReports(matchResults.matches, (currentIndex, total) => {
+    const reportResults = await reportGenerator.generateBatchReports(matchResults.matches, async (currentIndex, total) => {
       // Update progress from 70% to 85% based on completion
       const progressRange = 85 - 70; // 15% range
       const reportProgress = 70 + (currentIndex / total) * progressRange;
       const roundedProgress = Math.round(reportProgress);
-      updateProgress(roundedProgress);
-      console.log(`📊 Report generation progress: ${roundedProgress}% (${currentIndex}/${total} patients)`);
-    });
+      await updateProgress(roundedProgress);
+      console.log(`📊 Report generation progress: ${roundedProgress}% (${currentIndex}/${total} patients) [PERMANENT PARALLEL PROCESSING]`);
+    }, useGridFormat); // Pass the grid format preference
     
     // Step 4: Generate PDF (90% progress)
-    updateProgress(90);
-    console.log('📄 Starting PDF generation...');
+    await updateProgress(90);
+    console.log(`📄 Starting PDF generation for ${matchResults.matches.length} patients...`);
     const pdfPath = await generatePDF(reportResults, jobId);
+    
+    // Report final PDF size and create backup path
+    try {
+      const pdfStats = await fs.stat(pdfPath);
+      const sizeInMB = (pdfStats.size / (1024 * 1024)).toFixed(1);
+      console.log(`✅ PDF GENERATION COMPLETE: ${pdfPath} - Size: ${sizeInMB}MB (${pdfStats.size} bytes)`);
+      
+      // Create a backup with timestamp to prevent orphaned files
+      const backupPath = path.join('uploads/daily-reports/pdfs', `backup-${Date.now()}-${jobId}.pdf`);
+      await fs.copyFile(pdfPath, backupPath);
+      console.log(`🔧 BACKUP PDF CREATED: ${backupPath}`);
+      
+    } catch (sizeError) {
+      console.log('📊 PDF size check failed:', sizeError.message);
+    }
     
     // Step 5: Verify PDF file exists before marking complete
     console.log(`🔍 Verifying PDF file exists: ${pdfPath}`);
@@ -375,22 +537,47 @@ async function processScheduleFile(jobId: string, filePath: string, userId: numb
       throw new Error(`PDF verification failed: ${verifyError instanceof Error ? verifyError.message : 'PDF file not found or corrupted'}`);
     }
 
-    // Step 5: Complete (100% progress) - Only after PDF verification
+    // Step 5: Store PDF data for production environments
+    console.log(`🔧 PRODUCTION: Storing PDF data for ephemeral filesystem recovery...`);
+    let pdfDataForStorage: string | undefined;
+    
+    try {
+      const pdfBuffer = await fs.readFile(pdfPath);
+      if (pdfBuffer.length > 1024 && pdfBuffer.slice(0, 4).toString() === '%PDF') {
+        pdfDataForStorage = pdfBuffer.toString('base64');
+        console.log(`✅ PDF stored for production: ${(pdfBuffer.length / 1048576).toFixed(1)}MB`);
+        console.log(`🔧 PRODUCTION DEBUG: PDF data base64 length: ${pdfDataForStorage.length} chars`);
+      } else {
+        console.log(`⚠️ PDF validation failed for storage - Length: ${pdfBuffer.length}, Header: ${pdfBuffer.slice(0, 4).toString()}`);
+      }
+    } catch (pdfStorageError) {
+      console.log(`⚠️ PDF storage failed: ${pdfStorageError.message}`);
+    }
+
+    // Step 6: Complete (100% progress) - Only after PDF verification
     await updateProgress(100, 'completed');
-    await jobPersistence.updateJob(jobId, {
-      status: 'completed',
+    const finalJobData = {
+      status: 'completed' as const,
       progress: 100,
       pdfPath,
       result: {
         matchSummary: matchResults.summary,
         reportSummary: reportResults.summary,
         pdfPath,
+        pdfData: pdfDataForStorage, // PRODUCTION FIX: Store PDF for ephemeral filesystems
         reports: reportResults.reports.map(r => ({
           patient: r.patient,
           status: r.status
         })) // Don't include full chart data in API response
       }
-    });
+    };
+    
+    console.log(`🔧 PRODUCTION DEBUG: Final job update - PDF data included: ${!!pdfDataForStorage}`);
+    if (pdfDataForStorage) {
+      console.log(`🔧 PRODUCTION DEBUG: PDF data size: ${(pdfDataForStorage.length / 1048576).toFixed(2)}MB in base64`);
+    }
+    
+    await jobPersistence.updateJob(jobId, finalJobData);
 
     // Cleanup uploaded file
     await fs.unlink(filePath);
@@ -640,11 +827,23 @@ async function parseScheduleFile(filePath: string, originalFilename?: string): P
 }
 
 async function generatePDF(reportResults: any, jobId: string): Promise<string> {
+  console.log(`🔍 PRODUCTION PDF GENERATION: Starting for job ${jobId}`);
+  
   const jsPDF = (await import('jspdf')).jsPDF;
   
   const pdfDir = 'uploads/daily-reports/pdfs';
-  await fs.mkdir(pdfDir, { recursive: true });
+  
+  // PRODUCTION FIX: Ensure directory exists with proper permissions
+  try {
+    await fs.mkdir(pdfDir, { recursive: true, mode: 0o755 });
+    console.log(`✅ PRODUCTION: PDF directory ready: ${pdfDir}`);
+  } catch (mkdirError) {
+    console.error(`❌ PRODUCTION: Failed to create PDF directory: ${mkdirError}`);
+    throw new Error(`PDF directory creation failed: ${mkdirError.message}`);
+  }
+  
   const pdfPath = path.join(pdfDir, `${jobId}.pdf`);
+  console.log(`🔍 PRODUCTION: PDF will be saved to: ${pdfPath}`);
   
   try {
     // Create new PDF document in landscape for better chart visibility
@@ -819,19 +1018,90 @@ async function generatePDF(reportResults: any, jobId: string): Promise<string> {
       // REQUIREMENT #6: Page break before next patient (handled by loop)
     }
     
-    // Save PDF
-    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
-    await fs.writeFile(pdfPath, pdfBuffer);
+    // PRODUCTION FIX: Enhanced PDF generation with error handling
+    console.log(`🔍 PRODUCTION: Generating PDF buffer...`);
     
-    console.log(`✅ PDF generated successfully: ${pdfPath}`);
+    let pdfBuffer;
+    try {
+      const arrayBuffer = doc.output('arraybuffer');
+      pdfBuffer = Buffer.from(arrayBuffer);
+      console.log(`✅ PRODUCTION: PDF buffer created - Size: ${pdfBuffer.length} bytes`);
+      
+      // Validate buffer size (must be reasonable for a real report)
+      if (pdfBuffer.length < 51200) { // 50KB minimum
+        throw new Error(`PDF buffer too small: ${pdfBuffer.length} bytes`);
+      }
+      
+      // Validate PDF header
+      const pdfHeader = pdfBuffer.slice(0, 4).toString();
+      if (pdfHeader !== '%PDF') {
+        throw new Error('Generated buffer is not a valid PDF');
+      }
+      
+    } catch (bufferError) {
+      console.error(`❌ PRODUCTION: PDF buffer generation failed:`, bufferError);
+      throw new Error(`PDF buffer generation failed: ${bufferError.message}`);
+    }
+    
+    // Write to disk with atomic operation (temp file + rename)
+    const tempPath = `${pdfPath}.tmp`;
+    
+    try {
+      console.log(`🔍 PRODUCTION: Writing PDF to temp file: ${tempPath}`);
+      await fs.writeFile(tempPath, pdfBuffer, { mode: 0o644 });
+      
+      // Verify temp file was written correctly
+      const tempStats = await fs.stat(tempPath);
+      console.log(`✅ PRODUCTION: Temp file written - Size: ${tempStats.size} bytes`);
+      
+      if (tempStats.size !== pdfBuffer.length) {
+        throw new Error(`File size mismatch: expected ${pdfBuffer.length}, got ${tempStats.size}`);
+      }
+      
+      // Atomic rename (ensures file is either complete or doesn't exist)
+      await fs.rename(tempPath, pdfPath);
+      console.log(`✅ PRODUCTION: PDF file atomically created: ${pdfPath}`);
+      
+      // Final verification
+      const finalStats = await fs.stat(pdfPath);
+      console.log(`✅ PRODUCTION: Final PDF verified - Size: ${finalStats.size} bytes`);
+      
+    } catch (writeError) {
+      console.error(`❌ PRODUCTION: PDF write failed:`, writeError);
+      
+      // Cleanup temp file if it exists
+      try {
+        await fs.unlink(tempPath);
+      } catch (cleanupError) {
+        console.log(`🧹 PRODUCTION: Temp file cleanup info:`, cleanupError.message);
+      }
+      
+      throw new Error(`PDF write failed: ${writeError.message}`);
+    }
+    
+    console.log(`✅ PRODUCTION PDF SUCCESS: Generated ${pdfPath} (${pdfBuffer.length} bytes)`);
     return pdfPath;
     
   } catch (error) {
-    console.error('PDF generation error:', error);
-    // Fallback: create a simple text file
-    const fallbackContent = `Daily Patient Reports\nGenerated: ${new Date().toISOString()}\n\nReports: ${JSON.stringify(reportResults, null, 2)}`;
-    await fs.writeFile(pdfPath.replace('.pdf', '.txt'), fallbackContent);
-    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('❌ PRODUCTION PDF ERROR:', error);
+    
+    // Enhanced cleanup: remove any partial files
+    try {
+      await fs.unlink(pdfPath);
+      console.log(`🧹 PRODUCTION: Cleaned up partial PDF file`);
+    } catch (cleanupError) {
+      console.log(`🧹 PRODUCTION: No partial file to cleanup`);
+    }
+    
+    try {
+      await fs.unlink(`${pdfPath}.tmp`);
+      console.log(`🧹 PRODUCTION: Cleaned up temp file`);
+    } catch (cleanupError) {
+      console.log(`🧹 PRODUCTION: No temp file to cleanup`);
+    }
+    
+    // Don't create fallback text files in production - fail clearly
+    throw new Error(`PRODUCTION PDF GENERATION FAILED: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

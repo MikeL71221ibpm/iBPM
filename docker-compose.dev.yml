@@ -31,7 +31,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://dev_user:dev_password@postgres:5432/hrsn_analytics_dev
+      - DATABASE_URL=postgresql://dev_user:dev_password@localhost:5432/hrsn_analytics_dev
       - REDIS_URL=redis://redis:6379
       - SESSION_SECRET=dev-secret-key
       - LOG_LEVEL=debug
