@@ -24,8 +24,8 @@ RUN apk add --no-cache \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production --ignore-scripts
+# Install dependencies (including dev deps required for build)
+RUN npm ci
 RUN npm rebuild canvas --build-from-source
 
 # Copy source code
@@ -60,13 +60,18 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/client/dist ./client/dist
+# Vite outputs frontend to /app/dist/public; copy that into ./client/dist for app static serving
+COPY --from=builder /app/dist/public ./client/dist
 COPY --from=builder /app/public ./public
 
 # Copy necessary configuration files
 COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/server/data ./server/data
 COPY --from=builder /app/shared ./shared
+
+# Copy app init script
+COPY docker/app-init.sh /usr/local/bin/app-init.sh
+RUN chmod +x /usr/local/bin/app-init.sh
 
 # Create necessary directories with proper permissions
 RUN mkdir -p uploads/daily-reports/pdfs uploads/temp logs data
@@ -82,5 +87,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:5000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application via init script (runs migrations then starts)
+CMD ["/usr/local/bin/app-init.sh"]

@@ -1,0 +1,40 @@
+# Development Dockerfile with hot reload
+FROM node:20-alpine AS development
+
+# Install development dependencies for native modules
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    musl-dev \
+    giflib-dev \
+    pixman-dev \
+    pangomm-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    pkgconfig
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+RUN npm rebuild canvas --build-from-source
+
+# Copy source code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p uploads/daily-reports/pdfs uploads/temp logs data
+
+# Expose port
+EXPOSE 5000
+
+# Start development server with hot reload
+CMD ["npm", "run", "dev"]

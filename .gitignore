@@ -49,3 +49,5 @@ chart_backup*/
 pre-testing-backup/
 project_snapshot*/
 github-releases/
+
+docker/
