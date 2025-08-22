@@ -7,7 +7,7 @@ services:
     container_name: hrsn-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-hrsn_analytics}
+      POSTGRES_DB: ${POSTGRES_DB:-hrsn_analytics_dev}
       POSTGRES_USER: ${POSTGRES_USER:-hrsn_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hrsn_password}
       POSTGRES_HOST_AUTH_METHOD: trust
@@ -19,7 +19,7 @@ services:
     networks:
       - hrsn-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hrsn_user} -d ${POSTGRES_DB:-hrsn_analytics}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hrsn_user} -d ${POSTGRES_DB:-hrsn_analytics_dev}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,7 +55,7 @@ services:
         condition: service_healthy
     environment:
       # Database Configuration
-      DATABASE_URL: postgresql://${POSTGRES_USER:-hrsn_user}:${POSTGRES_PASSWORD:-hrsn_password}@postgres:5432/${POSTGRES_DB:-hrsn_analytics}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hrsn_user}:${POSTGRES_PASSWORD:-hrsn_password}@postgres:5432/${POSTGRES_DB:-hrsn_analytics_dev}
       
       # Redis Configuration
       REDIS_URL: redis://redis:6379

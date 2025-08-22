@@ -281,5 +281,30 @@ CREATE TABLE IF NOT EXISTS process_logs (
 	created_at timestamp DEFAULT now()
 );
 
--- End of init-db.sql
+	-- Ensure critical schema changes are present (idempotent)
+	-- This helps when a table was created earlier without newer columns.
+	ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS message text;
+
+	-- Ensure other columns exist to match application expectations
+	ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS current_stage varchar(50);
+	ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS total_items integer;
+	ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS processed_items integer DEFAULT 0;
+	ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS last_update_time timestamp DEFAULT now();
+	ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS end_time timestamp;
+	ALTER TABLE processing_status ADD COLUMN IF NOT EXISTS error text;
+
+	-- Ensure a unique constraint/index exists for upsert on (user_id, process_type)
+	DO $$
+	BEGIN
+		IF NOT EXISTS (
+			SELECT 1 FROM pg_indexes WHERE tablename = 'processing_status' AND indexname = 'processing_status_user_type_idx'
+		) THEN
+			CREATE UNIQUE INDEX processing_status_user_type_idx ON processing_status (user_id, process_type);
+		END IF;
+	END$$;
+
+	-- Create unique index for extracted_symptoms to prevent conflicts
+	CREATE UNIQUE INDEX IF NOT EXISTS ux_extracted_symptoms_conflict ON extracted_symptoms (patient_id, symptom_segment, dos_date, position_in_text, user_id);
+
+	-- End of init-db.sql
 
