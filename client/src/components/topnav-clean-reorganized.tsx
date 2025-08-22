@@ -98,7 +98,7 @@ export default function TopNavCleanReorganized() {
     }
     
     // Debug logging for route matching
-    if (isActive) {
+    if (isActive && process.env.NODE_ENV === 'development') {
       console.log(`🔵 Route ${route} is ACTIVE for location: ${location}`);
     }
     
