@@ -1,0 +1,63 @@
+# terraform.tfvars.example - Example Terraform variables file
+# Copy this file to terraform.tfvars and update with your actual values
+
+# AWS Configuration
+aws_region = "us-east-1"
+environment = "dev"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24", "10.0.12.0/24"]
+database_subnet_cidrs = ["10.0.20.0/24", "10.0.21.0/24", "10.0.22.0/24"]
+
+# Security Configuration
+allowed_cidr_blocks = ["0.0.0.0/0"] # Restrict in production
+
+# Database Configuration
+db_instance_class = "db.t3.medium"
+db_allocated_storage = 20
+db_engine_version = "16.3"
+db_backup_retention = 7
+db_multi_az = false
+db_deletion_protection = true
+db_name = "ibpm_analytics"
+db_username = "ibpm_user"
+db_password = "CHANGE_THIS_STRONG_PASSWORD"
+
+# S3 Configuration
+s3_bucket_name = "" # Leave empty to auto-generate
+
+# ECS Configuration
+app_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/ibpm-app:latest"
+app_port = 5000
+app_cpu = 512
+app_memory = 1024
+desired_count = 2
+max_capacity = 10
+min_capacity = 1
+cpu_target_value = 70
+memory_target_value = 80
+
+# Application Environment Variables
+session_secret = "CHANGE_THIS_TO_A_STRONG_RANDOM_SECRET"
+stripe_secret_key = "sk_test_..."
+stripe_publishable_key = "pk_test_..."
+sendgrid_api_key = "SG...."
+from_email = "noreply@yourdomain.com"
+openai_api_key = "sk-..." # Optional
+cors_origin = "*"
+
+# Route53 Configuration (optional)
+create_route53_records = false
+domain_name = "your-app.yourdomain.com"
+create_cloudfront = false
+
+# Monitoring Configuration
+enable_monitoring = true
+
+# Optional Features
+enable_deletion_protection = false
+create_https_listener = false
+ssl_certificate_arn = ""
